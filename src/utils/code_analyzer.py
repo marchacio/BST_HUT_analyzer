@@ -29,38 +29,48 @@ def _read_code_data(code: str) -> dict:
     }
 
 def code_analyzer_per_commit(commit: Commit) -> dict:
-    try:
-        final_code_data = {
-            'function_count': 0,
-            'async_function_count': 0,
-            'class_count': 0
-        }
+    """
+    Analyzes the code in a commit and returns a dictionary with the number of functions, async functions, and classes.
+    
+    Args:
+        commit (Commit): The commit object to analyze.
+    
+    Returns:
+        dict: A dictionary containing the counts of functions, async functions, and classes.
+    """
+    final_code_data = {
+        'function_count': 0,
+        'async_function_count': 0,
+        'class_count': 0,
         
-        # The commit.files attribute only shows files changed in the commit.
-        # To get all files at a commit, we need to traverse the commit's tree.
-        tree = commit.tree
+        'total_loc': 0,
+        'total_files': 0,
+    }
+    
+    # The commit.files attribute only shows files changed in the commit.
+    # To get all files at a commit, we need to traverse the commit's tree.
+    tree = commit.tree
 
-        for entry in tree.trees:
-            for blob in entry.blobs:
-                # If the blob is a Python file, count the functions in it
-                if blob.path.endswith('.py'):
-                    try:
-                        # Get the file content
-                        file_content = blob.data_stream.read()
-                        
-                        code_data = _read_code_data(file_content)
-                        
-                        final_code_data['function_count'] += code_data['function_count']
-                        final_code_data['async_function_count'] += code_data['async_function_count']
-                        final_code_data['class_count'] += code_data['class_count']
-                        
-                    except Exception as e:
-                        print(f"Error processing file {entry.path}: {e}")
-                        # Continue to the next file even if one fails
-                        pass
+    for entry in tree.trees:            
+        for blob in entry.blobs:
+            # If the blob is a Python file, count the functions in it
+            if blob.path.endswith('.py'):
+                try:
+                    # Get the file content
+                    file_content = blob.data_stream.read()
                     
-        return final_code_data 
-            
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        return -1
+                    code_data = _read_code_data(file_content)
+                    
+                    final_code_data['function_count'] += code_data['function_count']
+                    final_code_data['async_function_count'] += code_data['async_function_count']
+                    final_code_data['class_count'] += code_data['class_count']
+                    
+                    final_code_data['total_loc'] += len(file_content.splitlines())
+                    final_code_data['total_files'] += 1
+                    
+                except Exception as e:
+                    print(f"Error processing file {entry.path}: {e}")
+                    # Continue to the next file even if one fails
+                    pass
+                
+    return final_code_data 
