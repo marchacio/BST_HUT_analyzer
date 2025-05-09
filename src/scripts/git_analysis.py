@@ -10,11 +10,17 @@ def analyze_repo(repo: Repo, repo_name: str):
     if len(tags) < 2:
         print("Non ci sono abbastanza tag per identificare le tendenze.")
         return
+        
+    # Crea la cartella "analytics/repo_name" se non esiste ed utilizzala come output per i file
+    base_path = os.path.join("analytics", repo_name)
     
-    print(f"Numero di tag trovati: {len(tags)}")
+    # Crea la cartella "analytics" se non esiste
+    if not os.path.exists("analytics"):
+        os.makedirs("analytics")
     
-    # Crea la cartella "analytics" (se non esiste) dalla cartella principale del progetto, ovvero da dove è stato lanciato il codice
-    base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "analytics")
+    # Crea la cartella "analytics/repo_name" se non esiste
+    if not os.path.exists(base_path):
+        os.makedirs(base_path)
     
     # Ensure the "analytics" directory exists
     os.makedirs(base_path, exist_ok=True)
@@ -67,8 +73,13 @@ def analyze_repo(repo: Repo, repo_name: str):
         # Salva i dati del commit precedente per calcolare i delta
         previous_code_data = None
         previus_tag = None
+        
+        tag_length = len(tags)
 
-        for tag in tags:
+        for i, tag in enumerate(tags):
+            
+            # Printa l'avanzamento dell'analisi
+            print(f"\rAnalizzando il tag {tag.name} ({i+1}/{tag_length})... ", end="")
         
             commit = tag.commit
             code_data = code_analyzer.code_analyzer_per_commit(commit)
@@ -116,73 +127,8 @@ def analyze_repo(repo: Repo, repo_name: str):
             code_data_list.append(code_data)
             previous_code_data = code_data
             previus_tag = tag.name
-    
-    # Estrai i dati per il plotting
-    tags_names = [tag.name for tag in tags]
-
-    # Crea il grafico
-    plt.figure(figsize=(10, 6))
-    plt.plot(tags_names, [data['function_count'] for data in code_data_list], marker='o', linestyle='-', color='b', label='Numero di funzioni')
-    plt.plot(tags_names, [data['async_function_count'] for data in code_data_list], marker='o', linestyle='-', color='g', label='Numero di funzioni asincrone')
-    plt.plot(tags_names, [data['class_count'] for data in code_data_list], marker='o', linestyle='-', color='r', label='Numero di classi')
-    plt.xlabel('Tags')
-    plt.ylabel('Numero di funzioni, classi e funzioni asincrone')
-    plt.title('Trend delle metriche nel repository')
-    plt.xticks(rotation=45)
-    plt.grid(True)
-    plt.legend()  # Aggiungi la legenda
-    plt.tight_layout()
-
-    # Mostra il grafico
-    #plt.show()
-    
-    #Salva il grafico in un file
-    graph_file_path = os.path.join(base_path, "repo_code_analysis.png")
-    
-    plt.savefig(graph_file_path)
-    print(f"Grafico salvato in {graph_file_path}")
-    
-    
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(tags_names, [data['total_loc'] for data in code_data_list], marker='o', linestyle='-', color='b', label='Numero di linee di codice (LoC)')
-    plt.xlabel('Tags')
-    plt.ylabel('Numero di linee di codice')
-    plt.title('Trend delle metriche nel repository')
-    plt.xticks(rotation=45)
-    plt.grid(True)
-    plt.legend()  # Aggiungi la legenda
-    plt.tight_layout()
-
-    # Mostra il grafico
-    #plt.show()
-    
-    # Salva il grafico in un file
-    graph_file_path = os.path.join(base_path, "repo_code_analysis_loc.png")
-    
-    plt.savefig(graph_file_path)
-    print(f"Grafico salvato in {graph_file_path}")
-    
-    
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(tags_names, [data['total_files'] for data in code_data_list], marker='o', linestyle='-', color='b', label='Numero di file di codice')
-    plt.xlabel('Tags')
-    plt.ylabel('Numero di file di codice')
-    plt.title('Trend delle metriche nel repository')
-    plt.xticks(rotation=45)
-    plt.grid(True)
-    plt.legend()  # Aggiungi la legenda
-    plt.tight_layout()
-
-    # Mostra il grafico
-    #plt.show()
-    
-    # Salva il grafico in un file
-    graph_file_path = os.path.join(base_path, "repo_code_analysis_files.png")
-    
-    plt.savefig(graph_file_path)
-    print(f"Grafico salvato in {graph_file_path}")
+            
+    print(f"\n\nAnalisi completata. I risultati sono stati salvati in {csv_file_path}.")
 
 
 if __name__ == "__main__":
