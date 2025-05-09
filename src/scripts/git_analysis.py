@@ -31,27 +31,42 @@ def analyze_repo(repo: Repo, repo_name: str):
         csv_writer.writerow([
             "Tag",
             "Date",
+            "Commit_Author",
+            "Type",
             
             '#LoC', 
             '#Files',
             
-            'Delta #LoC',
-            'Delta #Files',
-                        
-            "Function Count", 
-            "Async Function Count", "Class Count",
+            'Delta_#LoC',
+            'Delta_#Files',
+                
+            "Function_Count", 
+            "Delta_Function_Count", 
             
-            "Delta Function Count", "Delta Async Function Count",
-            "Delta Class Count",
+            "Async_Function_Count",
+            "Delta_Async_Function_Count",
             
+            "Class_Count",
+            "Delta_Class_Count",
             
+            # Security metrics
+            "Python_Entropy",
+            "Delta_Python_Entropy",
             
-            "Author",
+            "Total_Entropy",
+            "Delta_Total_Entropy",
             
+            "Dependencies_Count",
+            
+            'SAST_findings_count',
+            'SAST_findings_high',
+            'SAST_findings_medium',
+            'SAST_findings_low',
         ]),
         
         # Salva i dati del commit precedente per calcolare i delta
         previous_code_data = None
+        previus_tag = None
 
         for tag in tags:
         
@@ -61,6 +76,12 @@ def analyze_repo(repo: Repo, repo_name: str):
             csv_writer.writerow([
                 tag.name,
                 commit.committed_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                commit.author.name,
+                
+                # add a new column for the type of tag (major, minor, patch, initial)
+                "patch" if previus_tag and tag.name.split('.')[0] == previus_tag.split('.')[0] and tag.name.split('.')[1] == previus_tag.split('.')[1] else
+                "minor" if previus_tag and tag.name.split('.')[0] == previus_tag.split('.')[0] else
+                "major" if previus_tag else "initial",
                 
                 code_data.get('total_loc', 0), 
                 code_data.get('total_files', 0),
@@ -69,19 +90,32 @@ def analyze_repo(repo: Repo, repo_name: str):
                 code_data.get('total_files', 0) - (previous_code_data['total_files'] if previous_code_data else 0),
                 
                 code_data.get('function_count', 0),
-                code_data.get('async_function_count', 0),
-                code_data.get('class_count', 0),
-                
                 code_data.get('function_count', 0) - (previous_code_data['function_count'] if previous_code_data else 0),
+                
+                code_data.get('async_function_count', 0),
                 code_data.get('async_function_count', 0) - (previous_code_data['async_function_count'] if previous_code_data else 0),
+                
+                code_data.get('class_count', 0),
                 code_data.get('class_count', 0) - (previous_code_data['class_count'] if previous_code_data else 0),
                 
+                code_data.get('python_entropy', 0),
+                code_data.get('python_entropy', 0) - (previous_code_data['python_entropy'] if previous_code_data else 0),
                 
-                commit.author.name,
+                code_data.get('total_entropy', 0),
+                code_data.get('total_entropy', 0) - (previous_code_data['total_entropy'] if previous_code_data else 0),
+                
+                code_data.get('dependecies_count', 0),
+                
+                code_data.get('sast_findings_count', 0),
+                code_data.get('sast_findings_high', 0),
+                code_data.get('sast_findings_medium', 0),
+                code_data.get('sast_findings_low', 0),
+                
             ])
             
             code_data_list.append(code_data)
             previous_code_data = code_data
+            previus_tag = tag.name
     
     # Estrai i dati per il plotting
     tags_names = [tag.name for tag in tags]
