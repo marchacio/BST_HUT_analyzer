@@ -2,6 +2,7 @@ from git import Commit
 from src.utils.shannon_entropy import calculate_shannon_entropy
 from src.utils.sast_analyzer import analyze_python_file_for_sast
 from src.utils.secret_analyzer import find_secrets_in_file
+from src.utils.cyclomatic_complexity_analyzer import analyze_file_complexity
 import ast
 
 def _read_code_data(code: str) -> dict:
@@ -52,8 +53,9 @@ def _read_code_data(code: str) -> dict:
 def code_analyzer_per_commit(
     commit: Commit, 
     analyze_all_file:bool,
-    sast_analyzer: bool = False,
-    secret_analyzer: bool = False,
+    sast_analyzer: bool = True,
+    secret_analyzer: bool = True,
+    cyclomatic_complexity_analyzer: bool = True,
     verbose: bool = False,
 ) -> dict:
     """
@@ -90,6 +92,9 @@ def code_analyzer_per_commit(
     
     # Lista per tenere traccia dei risultati del secret analyzer
     commit_secret_findings = []
+    
+    # Lista per tenere traccia dei risultati del cyclomatic complexity analyzer
+    commit_cyclomatic_complexity_findings = []
 
     for entry in tree.trees:
         for blob in entry.blobs:
@@ -119,6 +124,13 @@ def code_analyzer_per_commit(
                         commit_secret_findings.extend(secrets_in_file)
                         #----------------------------------------------------
                     
+                    if cyclomatic_complexity_analyzer:
+                        #------------------- Cyclomatic Complexity Analysis ------------------
+                        # Analizza il file corrente e ottieni la complessità ciclomica
+                        complexity_in_file = analyze_file_complexity(file_content, blob.path)
+                        # Aggiungi i risultati di questo file alla lista totale
+                        commit_cyclomatic_complexity_findings.extend(complexity_in_file)
+                        #---------------------------------------------------------------------
                     
                     code_data = _read_code_data(file_content)
                     
@@ -142,71 +154,100 @@ def code_analyzer_per_commit(
     
     final_code_data['dependencies_count'] = len(dependecies)
     
-    #-----------------------------------------------
-    # SAST findings
-    #-----------------------------------------------
-    high_set = set()
-    medium_set = set()
-    low_set = set()
-    severity_counts = {
-        'High': 0,
-        'Medium': 0,
-        'Low': 0,
-    }
-
-    for finding in commit_sast_findings:
-        if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
-            severity_counts[finding['severity']] += 1
-            
-            # Aggiungi il finding alla lista corrispondente
-            if finding['severity'] == 'High':
-                high_set.add(finding['type'])
-            elif finding['severity'] == 'Medium':
-                medium_set.add(finding['type'])
-            elif finding['severity'] == 'Low':
-                low_set.add(finding['type'])
-
-    final_code_data['sast_findings_count'] = len(commit_sast_findings)
-    final_code_data['sast_findings_high_count'] = severity_counts['High']
-    final_code_data['sast_findings_medium_count'] = severity_counts['Medium']
-    final_code_data['sast_findings_low_count'] = severity_counts['Low']
-    
-    final_code_data['sast_findings_high'] = ", ".join(high_set)
-    final_code_data['sast_findings_medium'] = ", ".join(medium_set)
-    final_code_data['sast_findings_low'] = ", ".join(low_set)
-    
-    #-----------------------------------------------
-    # Secret findings
-    #-----------------------------------------------
-    high_set = set()
-    medium_set = set()
-    low_set = set()
-    severity_counts = {
-        'High': 0,
-        'Medium': 0,
-        'Low': 0,
-    }
+    if sast_analyzer:
         
-    for finding in commit_secret_findings:
-        # log:
-        if verbose:
-            print(f"[Secret] {finding['file']}:{finding['line']} - {finding['description']} (Tipo: {finding['type']}) - Match: '{finding['match']}'")
+        #-----------------------------------------------
+        # SAST findings
+        #-----------------------------------------------
+        high_set = set()
+        medium_set = set()
+        low_set = set()
+        severity_counts = {
+            'High': 0,
+            'Medium': 0,
+            'Low': 0,
+        }
+
+        for finding in commit_sast_findings:
+            if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
+                severity_counts[finding['severity']] += 1
+                
+                # Aggiungi il finding alla lista corrispondente
+                if finding['severity'] == 'High':
+                    high_set.add(finding['type'])
+                elif finding['severity'] == 'Medium':
+                    medium_set.add(finding['type'])
+                elif finding['severity'] == 'Low':
+                    low_set.add(finding['type'])
+
+        final_code_data['sast_findings_count'] = len(commit_sast_findings)
+        final_code_data['sast_findings_high_count'] = severity_counts['High']
+        final_code_data['sast_findings_medium_count'] = severity_counts['Medium']
+        final_code_data['sast_findings_low_count'] = severity_counts['Low']
         
-        if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
-            severity_counts[finding['severity']] += 1
+        final_code_data['sast_findings_high'] = "; ".join(high_set)
+        final_code_data['sast_findings_medium'] = "; ".join(medium_set)
+        final_code_data['sast_findings_low'] = "; ".join(low_set)
+    
+    if secret_analyzer:
+        #-----------------------------------------------
+        # Secret findings
+        #-----------------------------------------------
+        high_set = set()
+        medium_set = set()
+        low_set = set()
+        severity_counts = {
+            'High': 0,
+            'Medium': 0,
+            'Low': 0,
+        }
             
-            # Aggiungi il finding alla lista corrispondente
-            if finding['severity'] == 'High':
-                high_set.add(finding['type'])
-            elif finding['severity'] == 'Medium':
-                medium_set.add(finding['type'])
-            elif finding['severity'] == 'Low':
-                low_set.add(finding['type'])
+        for finding in commit_secret_findings:
+            # log:
+            if verbose:
+                print(f"[Secret] {finding['file']}:{finding['line']} - {finding['description']} (Tipo: {finding['type']}) - Match: '{finding['match']}'")
+            
+            if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
+                severity_counts[finding['severity']] += 1
+                
+                # Aggiungi il finding alla lista corrispondente
+                if finding['severity'] == 'High':
+                    high_set.add(finding['type'])
+                elif finding['severity'] == 'Medium':
+                    medium_set.add(finding['type'])
+                elif finding['severity'] == 'Low':
+                    low_set.add(finding['type'])
+        
+        
+        final_code_data['secret_findings_count'] = len(commit_secret_findings)
+        final_code_data['secret_findings_high_count'] = severity_counts['High']
+        final_code_data['secret_findings_medium_count'] = severity_counts['Medium']
+        final_code_data['secret_findings_low_count'] = severity_counts['Low']
     
-    
-    final_code_data['secret_findings_count'] = len(commit_secret_findings)
-    final_code_data['secret_findings_high_count'] = severity_counts['High']
-    final_code_data['secret_findings_medium_count'] = severity_counts['Medium']
-    final_code_data['secret_findings_low_count'] = severity_counts['Low']
-   
+    if cyclomatic_complexity_analyzer:
+        #-----------------------------------------------
+        # Cyclomatic Complexity findings
+        #-----------------------------------------------
+        
+        function_set = list()
+        module_set = list()
+        method_set = list()
+        
+        for finding in commit_cyclomatic_complexity_findings:
+            if finding['type'] == 'function':
+                function_set.append(finding['complexity'])
+            elif finding['type'] == 'module':
+                module_set.append(finding['complexity'])
+            elif finding['type'] == 'method':
+                method_set.append(finding['complexity'])
+        
+        final_code_data['cc_function_count'] = len(function_set)
+        final_code_data['cc_function_average'] = sum(function_set) / len(function_set) if function_set else 0
+        
+        final_code_data['cc_module_count'] = len(module_set)
+        final_code_data['cc_module_average'] = sum(module_set) / len(module_set) if module_set else 0
+        
+        final_code_data['cc_method_count'] = len(method_set)
+        final_code_data['cc_method_average'] = sum(method_set) / len(method_set) if method_set else 0
+            
     return final_code_data 
