@@ -1,10 +1,8 @@
 import os
-from git import Repo
 from src.utils import clone_repo, code_analyzer
 import csv
 import argparse
 import time
-import matplotlib.pyplot as plt
 
 analyze_all_file = True
 sast_analyzer = True
@@ -16,7 +14,6 @@ def _create_csv_file(
     csv_file_path: str, 
     tags: list, 
 ):
-    #global analyze_all_file, sast_analyzer, secret_analyzer, cyclomatic_analyzer, verbose
     
     code_data_list = []
     

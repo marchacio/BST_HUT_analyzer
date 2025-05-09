@@ -1,6 +1,5 @@
 import os
 import ast
-import math # Non strettamente necessario per la complessità, ma utile per altre metriche se volessi aggiungerle
 
 # Classe visitatore AST per calcolare la complessità ciclomica
 # Contiamo i punti decisionali: if, for, while, except, and, or, assert, case

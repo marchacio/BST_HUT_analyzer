@@ -1,4 +1,3 @@
-import os
 import re
 
 # Definizione dei pattern regex per cercare potenziali segreti hardcoded.
