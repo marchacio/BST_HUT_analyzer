@@ -1,18 +1,28 @@
 import os
 from git import Repo
 from src.utils import clone_repo, code_analyzer
-import sys
 import csv
+import argparse
+import time
 import matplotlib.pyplot as plt
 
-def _create_csv_file(csv_file_path: str, tags: list, analyze_all_file: bool):
+analyze_all_file = True
+sast_analyzer = True
+secret_analyzer = True
+verbose = False
+
+def _create_csv_file(
+    csv_file_path: str, 
+    tags: list, 
+):
+    global analyze_all_file, sast_analyzer, secret_analyzer
+    
     code_data_list = []
     
     with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
         csv_writer = csv.writer(csv_file)
         
-        # Write the header row
-        csv_writer.writerow([
+        header = [
             "Tag",
             "Date",
             "Commit_Author",
@@ -28,15 +38,29 @@ def _create_csv_file(csv_file_path: str, tags: list, analyze_all_file: bool):
             # Security metrics
             "Entropy",
             "Dependencies_Count",
+        ]
+        
+        if sast_analyzer:
+            header += [
+                'SAST_findings_count',
+                'SAST_findings_high_count',
+                'SAST_findings_high',
+                'SAST_findings_medium_count',
+                'SAST_findings_medium',
+                'SAST_findings_low_count',
+                'SAST_findings_low',   
+            ]
             
-            'SAST_findings_count',
-            'SAST_findings_high_count',
-            'SAST_findings_high',
-            'SAST_findings_medium_count',
-            'SAST_findings_medium',
-            'SAST_findings_low_count',
-            'SAST_findings_low',
-        ]),
+        if secret_analyzer:
+            header += [
+                'Secret_Findings_Count',
+                'Secret_Findings_High_Count',
+                'Secret_Findings_Medium_Count',
+                'Secret_Findings_Low_Count'
+            ]
+        
+        # Write the header row
+        csv_writer.writerow(header),
         
         # Salva i dati del commit precedente per calcolare i delta
         previus_tag = None
@@ -51,15 +75,21 @@ def _create_csv_file(csv_file_path: str, tags: list, analyze_all_file: bool):
             commit = tag.commit
             
             # Ottieni i dati del commit
-            code_data = code_analyzer.code_analyzer_per_commit(commit, analyze_all_file=analyze_all_file)
+            code_data = code_analyzer.code_analyzer_per_commit(
+                commit, 
+                analyze_all_file=analyze_all_file,
+                sast_analyzer=sast_analyzer,
+                secret_analyzer=secret_analyzer,
+                verbose=verbose,
+            )
             
             # Salva i dati del commit corrente nel file CSV
-            csv_writer.writerow([
+            data = [
                 tag.name,
                 commit.committed_datetime.strftime("%Y-%m-%d %H:%M:%S"),
                 commit.author.name,
                 
-                # add a new column for the type of tag (major, minor, patch, initial)
+                # Add a new column for the type of tag (major, minor, patch, initial)
                 "patch" if previus_tag and tag.name.split('.')[0] == previus_tag.split('.')[0] and tag.name.split('.')[1] == previus_tag.split('.')[1] else
                 "minor" if previus_tag and tag.name.split('.')[0] == previus_tag.split('.')[0] else
                 "major" if previus_tag else "initial",
@@ -73,17 +103,31 @@ def _create_csv_file(csv_file_path: str, tags: list, analyze_all_file: bool):
                 
                 code_data.get('entropy', 0),
                 
-                code_data.get('dependecies_count', 0),
+                code_data.get('dependencies_count', 0),
+            ]
+            
+            if sast_analyzer:
+                data += [
+                    code_data.get('sast_findings_count', 0),
+                    code_data.get('sast_findings_high_count', 0),
+                    code_data.get('sast_findings_high', ''),
+                    code_data.get('sast_findings_medium_count', 0),
+                    code_data.get('sast_findings_medium', ''),
+                    code_data.get('sast_findings_low_count', 0),
+                    code_data.get('sast_findings_low', ''),
+                ]
                 
-                code_data.get('sast_findings_count', 0),
-                
-                code_data.get('sast_findings_high_count', 0),
-                code_data.get('sast_findings_high', ''),
-                code_data.get('sast_findings_medium_count', 0),
-                code_data.get('sast_findings_medium', ''),
-                code_data.get('sast_findings_low_count', 0),
-                code_data.get('sast_findings_low', ''),
-            ])
+            if secret_analyzer:
+                data += [
+                    # Add secret findings data
+                    code_data.get('secret_findings_count', 0),
+                    code_data.get('secret_findings_high_count', 0),
+                    code_data.get('secret_findings_medium_count', 0),
+                    code_data.get('secret_findings_low_count', 0)
+                ]
+            
+            
+            csv_writer.writerow(data)
             
             code_data_list.append(code_data)
             previus_tag = tag.name
@@ -114,18 +158,39 @@ def analyze_repo(repo: Repo, repo_name: str):
     csv_python_file_path = os.path.join(base_path, "python_code_analysis.csv")
     csv_total_file_path = os.path.join(base_path, "all_code_analysis.csv")
     
-    _create_csv_file(csv_python_file_path, tags, analyze_all_file=False)
-    _create_csv_file(csv_total_file_path, tags, analyze_all_file=True)
+    start_time_python = time.time()
+    _create_csv_file(csv_python_file_path, tags)
+    end_time_python = time.time()
+    if verbose:
+        print(f"Execution time for Python code analysis: {end_time_python - start_time_python:.2f} seconds")
+
+    start_time_total = time.time()
+    _create_csv_file(csv_total_file_path, tags)
+    end_time_total = time.time()
+    if verbose:
+        print(f"Execution time for total code analysis: {end_time_total - start_time_total:.2f} seconds")
 
 
 if __name__ == "__main__":
     
     # Scarica il repository se non è già presente
-    repo_url = sys.argv[1] if len(sys.argv) > 1 else None
-    if not repo_url:
-        raise ValueError("Please provide the repository URL as the first argument.")
+    parser = argparse.ArgumentParser(description="Analyze a Git repository for code and security metrics.")
+    parser.add_argument("repo_url", type=str, help="The URL of the Git repository to analyze.")
+    parser.add_argument("--analyze_all_file", action="store_true", help="Analyze all files instead of only Python files.")
+    parser.add_argument("--no-sast", action="store_true", help="Disable SAST analyzer.")
+    parser.add_argument("--no-secret", action="store_true", help="Disable secret analyzer.")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show verbose log.")
+    
+    args = parser.parse_args()
+    
+    repo_url = args.repo_url
+    analyze_all_file = args.analyze_all_file
+    sast_analyzer = not args.no_sast
+    secret_analyzer = not args.no_secret
+    verbose = args.verbose
     
     repo = clone_repo.clone_repo(repo_url)
-    repo_name = repo_url.rstrip('/').split('/')[-1].split('.git')[0] 
-        
+    repo_name = repo_url.rstrip('/').split('/')[-1].split('.git')[0]
+    
+    # Esegui l'analisi del repository
     analyze_repo(repo, repo_name)

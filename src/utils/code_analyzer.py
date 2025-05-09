@@ -1,6 +1,7 @@
 from git import Commit
 from src.utils.shannon_entropy import calculate_shannon_entropy
 from src.utils.sast_analyzer import analyze_python_file_for_sast
+from src.utils.secret_analyzer import find_secrets_in_file
 import ast
 
 def _read_code_data(code: str) -> dict:
@@ -48,7 +49,13 @@ def _read_code_data(code: str) -> dict:
         'dependecies_set': imported_names,
     }
 
-def code_analyzer_per_commit(commit: Commit, analyze_all_file:bool) -> dict:
+def code_analyzer_per_commit(
+    commit: Commit, 
+    analyze_all_file:bool,
+    sast_analyzer: bool = False,
+    secret_analyzer: bool = False,
+    verbose: bool = False,
+) -> dict:
     """
     Analyzes the code in a commit and returns a dictionary with the number of functions, async functions, and classes.
     
@@ -80,6 +87,9 @@ def code_analyzer_per_commit(commit: Commit, analyze_all_file:bool) -> dict:
     
     # Lista per tenere traccia dei risultati di SAST (Static Application Security Testing)
     commit_sast_findings = []
+    
+    # Lista per tenere traccia dei risultati del secret analyzer
+    commit_secret_findings = []
 
     for entry in tree.trees:
         for blob in entry.blobs:
@@ -93,10 +103,22 @@ def code_analyzer_per_commit(commit: Commit, analyze_all_file:bool) -> dict:
                     # add the content of the file to the total_bytes
                     total_bytes += file_content
                     
-                    # Analizza il file corrente e ottieni i findings
-                    findings_in_file = analyze_python_file_for_sast(file_content, blob.path)
-                    # Aggiungi i findings di questo file alla lista totale
-                    commit_sast_findings.extend(findings_in_file)
+                    if sast_analyzer:
+                        #------------------- SAST Analysis ------------------
+                        # Analizza il file corrente e ottieni i findings
+                        findings_in_file = analyze_python_file_for_sast(file_content, blob.path)
+                        # Aggiungi i findings di questo file alla lista totale
+                        commit_sast_findings.extend(findings_in_file)
+                        #----------------------------------------------------
+                    
+                    if secret_analyzer:
+                        #------------------- Secret Analysis ------------------
+                        # Analizza il file corrente e ottieni i segreti
+                        secrets_in_file = find_secrets_in_file(file_content, blob.path)
+                        # Aggiungi i segreti di questo file alla lista totale
+                        commit_secret_findings.extend(secrets_in_file)
+                        #----------------------------------------------------
+                    
                     
                     code_data = _read_code_data(file_content)
                     
@@ -118,10 +140,11 @@ def code_analyzer_per_commit(commit: Commit, analyze_all_file:bool) -> dict:
     entropy = calculate_shannon_entropy(total_bytes)
     final_code_data['entropy'] = entropy
     
-    final_code_data['dependecies_count'] = len(dependecies)
+    final_code_data['dependencies_count'] = len(dependecies)
     
-    
-    # Conta i findings per livello di gravità
+    #-----------------------------------------------
+    # SAST findings
+    #-----------------------------------------------
     high_set = set()
     medium_set = set()
     low_set = set()
@@ -151,5 +174,39 @@ def code_analyzer_per_commit(commit: Commit, analyze_all_file:bool) -> dict:
     final_code_data['sast_findings_high'] = ", ".join(high_set)
     final_code_data['sast_findings_medium'] = ", ".join(medium_set)
     final_code_data['sast_findings_low'] = ", ".join(low_set)
+    
+    #-----------------------------------------------
+    # Secret findings
+    #-----------------------------------------------
+    high_set = set()
+    medium_set = set()
+    low_set = set()
+    severity_counts = {
+        'High': 0,
+        'Medium': 0,
+        'Low': 0,
+    }
+        
+    for finding in commit_secret_findings:
+        # log:
+        if verbose:
+            print(f"[Secret] {finding['file']}:{finding['line']} - {finding['description']} (Tipo: {finding['type']}) - Match: '{finding['match']}'")
+        
+        if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
+            severity_counts[finding['severity']] += 1
+            
+            # Aggiungi il finding alla lista corrispondente
+            if finding['severity'] == 'High':
+                high_set.add(finding['type'])
+            elif finding['severity'] == 'Medium':
+                medium_set.add(finding['type'])
+            elif finding['severity'] == 'Low':
+                low_set.add(finding['type'])
+    
+    
+    final_code_data['secret_findings_count'] = len(commit_secret_findings)
+    final_code_data['secret_findings_high_count'] = severity_counts['High']
+    final_code_data['secret_findings_medium_count'] = severity_counts['Medium']
+    final_code_data['secret_findings_low_count'] = severity_counts['Low']
    
     return final_code_data 

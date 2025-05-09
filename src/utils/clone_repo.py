@@ -2,7 +2,7 @@ from git import Repo
 import os
 
 
-def clone_repo(repo_url, repos_dir="repos"):
+def clone_repo(repo_url, repos_dir="repos", verbose=False):
     """
     Clones a Git repository from the given URL into a local directory.
     This function checks if a local directory named "repos" exists in the relative path
@@ -35,11 +35,14 @@ def clone_repo(repo_url, repos_dir="repos"):
 
     # Clona il repository se non è già presente
     if not os.path.exists(repo_path):
-        print(f"Clonazione di {repo_url}...")
+        if verbose:
+            print(f"Clonazione di {repo_url}...")
         Repo.clone_from(repo_url, repo_path)
     else:
-        print(f"Il repository '{repo_name}' è già presente.")
+        if verbose:
+            print(f"Il repository '{repo_name}' è già presente.")
 
-    print(f"Repository '{repo_name}' clonato con successo in '{repo_path}'.")
+    if verbose:
+        print(f"Repository '{repo_name}' clonato con successo in '{repo_path}'.")
 
     return Repo(repo_path)
