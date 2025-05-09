@@ -117,88 +117,10 @@ def analyze_python_file_for_sast(code: str, file_path:str) -> list[dict]:
         # Già gestito da os.walk se il file scompare durante la scansione
         pass
     except SyntaxError as e:
-        print(f"Attenzione: Errore di sintassi nel file {file_path}: {e}")
+        if file_path.endswith('.py'):
+            print(f"Attenzione: Errore di sintassi nel file {file_path}: {e}")
     except Exception as e:
         # Cattura altri potenziali errori di parsing
         print(f"Si è verificato un errore inatteso durante l'analisi di {file_path}: {e}")
 
     return findings
-
-
-# --- Funzione principale per scansionare il progetto ---
-def perform_basic_sast_scan(project_directory: str) -> list[dict]:
-    """
-    Esegue una scansione SAST basilare su tutti i file .py in una directory.
-
-    Args:
-        project_directory: Il percorso della directory principale del progetto.
-
-    Returns:
-        Una lista di tutti i findings trovati.
-    """
-    all_findings = []
-    python_files_count = 0
-
-    # Attraversa la directory e le sottodirectory
-    for root, _, files in os.walk(project_directory):
-        for file in files:
-            # Elabora solo i file Python
-            if file.endswith(".py"):
-                python_files_count += 1
-                file_path = os.path.join(root, file)
-                # Analizza il file corrente e ottieni i findings
-                findings_in_file = analyze_python_file_for_sast(file_path)
-                # Aggiungi i findings di questo file alla lista totale
-                all_findings.extend(findings_in_file)
-
-    if python_files_count == 0:
-        print(f"Attenzione: Nessun file .py trovato nella directory '{project_directory}'.")
-
-    return all_findings
-
-# --- Esempio di utilizzo ---
-if __name__ == '__main__':
-    # !!! SOSTITUISCI QUESTO PERCORSO CON QUELLO DELLA CARTELLA PRINCIPALE DEL TUO PROGETTO !!!
-    project_root_directory = "path/to/your/python/project"
-
-    if project_root_directory == "path/to/your/python/project":
-         print("Per favore, sostituisci 'path/to/your/python/project' con il percorso effettivo della cartella principale del tuo progetto Python.")
-    else:
-        print(f"Avvio scansione SAST basilare sui file Python in: {project_root_directory} ...")
-        findings = perform_basic_sast_scan(project_root_directory)
-
-        print("\n--- Risultati Scansione SAST Basilare ---")
-
-        if not findings:
-            print("Nessuna potenziale vulnerabilità trovata basata sui pattern definiti.")
-        else:
-            print(f"Numero totale di potenziali vulnerabilità (findings): {len(findings)}")
-
-            # Conta i findings per livello di gravità
-            severity_counts = {'High': 0, 'Medium': 0, 'Low': 0}
-            # Assicurati che tutte le severità definite in INSECURE_PATTERNS siano nel conteggio
-            for severity in INSECURE_PATTERNS.keys():
-                 severity_counts[severity] = 0
-
-            for finding in findings:
-                if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
-                    severity_counts[finding['severity']] += 1
-                else:
-                     # Questo non dovrebbe succedere se INSECURE_PATTERNS è definito correttamente
-                     print(f"Attenzione: Trovata severità non definita: {finding['severity']}")
-
-
-            print("\nConteggio per livello di gravità:")
-            # Stampa in un ordine sensato (es. High, Medium, Low)
-            for severity in ['High', 'Medium', 'Low']:
-                 if severity in severity_counts:
-                      print(f"  {severity}:   {severity_counts[severity]}")
-
-            # Opzionalmente, stampa i dettagli di ogni finding
-            print("\n--- Dettagli dei Findings ---")
-            # Ordina i findings per severità, poi per file e numero di riga
-            severity_order = {'High': 1, 'Medium': 2, 'Low': 3} # Definisci un ordine per la stampa
-            sorted_findings = sorted(findings, key=lambda x: (severity_order.get(x['severity'], 99), x['file'], x['line'])) # Usa .get per severità non definite
-
-            for finding in sorted_findings:
-                print(f"[{finding['severity']}] {finding['file']}:{finding['line']} - {finding['description']} ({finding['type']})")
