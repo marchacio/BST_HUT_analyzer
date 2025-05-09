@@ -28,7 +28,9 @@ def analyze_repo(repo: Repo, repo_name: str):
         csv_writer = csv.writer(csv_file)
         
         # Write the header row
-        csv_writer.writerow(["Tag",
+        csv_writer.writerow([
+            "Tag",
+            "Date",
             
             '#LoC', 
             '#Files',
@@ -40,7 +42,11 @@ def analyze_repo(repo: Repo, repo_name: str):
             "Async Function Count", "Class Count",
             
             "Delta Function Count", "Delta Async Function Count",
-            "Delta Class Count"
+            "Delta Class Count",
+            
+            
+            
+            "Author",
             
         ]),
         
@@ -54,6 +60,7 @@ def analyze_repo(repo: Repo, repo_name: str):
                         
             csv_writer.writerow([
                 tag.name,
+                commit.committed_datetime.strftime("%Y-%m-%d %H:%M:%S"),
                 
                 code_data.get('total_loc', 0), 
                 code_data.get('total_files', 0),
@@ -67,7 +74,10 @@ def analyze_repo(repo: Repo, repo_name: str):
                 
                 code_data.get('function_count', 0) - (previous_code_data['function_count'] if previous_code_data else 0),
                 code_data.get('async_function_count', 0) - (previous_code_data['async_function_count'] if previous_code_data else 0),
-                code_data.get('class_count', 0) - (previous_code_data['class_count'] if previous_code_data else 0)
+                code_data.get('class_count', 0) - (previous_code_data['class_count'] if previous_code_data else 0),
+                
+                
+                commit.author.name,
             ])
             
             code_data_list.append(code_data)
