@@ -1,5 +1,7 @@
 import ast
 
+from .log import log
+
 # Definizione estesa dei pattern di funzioni potenzialmente insicure da cercare
 # Mappiamo il pattern (Modulo.funzione o solo funzione) alla sua gravità e descrizione
 INSECURE_CALL_PATTERNS = [
@@ -194,9 +196,9 @@ def analyze_python_file_for_sast(code: str, file_path:str) -> list[dict]:
     except SyntaxError as e:
         # Controlla esplicitamente se è un file .py prima di stampare l'avviso
         if file_path and file_path.endswith('.py'):
-             print(f"Attenzione: Errore di sintassi nel file {file_path}: {e}")
+             log(f"Attenzione: Errore di sintassi nel file {file_path}: {e}")
     except Exception as e:
         # Cattura altri potenziali errori di parsing
-        print(f"Si è verificato un errore inatteso durante l'analisi di {file_path}: {e}")
+        log(f"Si è verificato un errore inatteso durante l'analisi di {file_path}: {e}")
 
     return findings

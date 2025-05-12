@@ -4,11 +4,12 @@ import csv
 import argparse
 import time
 
+from src.utils.log import init_logging, log
+
 analyze_all_file = True
 sast_analyzer = True
 secret_analyzer = True
 cyclomatic_analyzer = True
-verbose = False
 
 def _create_csv_file(
     csv_file_path: str, 
@@ -50,8 +51,7 @@ def _create_csv_file(
                 'SAST_findings_low',   
             ]
         else:
-            if verbose:
-                print("SAST analyzer is disabled. Skipping SAST findings.")
+            log("SAST analyzer is disabled. Skipping SAST findings.")
         
         # Add secret analyzer findings to the header if enabled
         if secret_analyzer:
@@ -62,8 +62,7 @@ def _create_csv_file(
                 'Secret_Findings_Low_Count'
             ]
         else:
-            if verbose:
-                print("Secret analyzer is disabled. Skipping secret findings.")
+            log("Secret analyzer is disabled. Skipping secret findings.")
                 
         if cyclomatic_analyzer:
             header += [
@@ -75,8 +74,7 @@ def _create_csv_file(
                 'CC_Method_Average',
             ]
         else:
-            if verbose:
-                print("Cyclomatic complexity analyzer is disabled. Skipping cyclomatic complexity findings.")
+            log("Cyclomatic complexity analyzer is disabled. Skipping cyclomatic complexity findings.")
         
         # Write the header row
         csv_writer.writerow(header),
@@ -88,8 +86,8 @@ def _create_csv_file(
 
         for i, tag in enumerate(tags):
             
-            # Printa l'avanzamento dell'analisi
-            print(f"\rAnalizzando il tag {tag.name} ({i+1}/{tag_length})... ", end="")
+            # loga l'avanzamento dell'analisi
+            log(f"\rAnalizzando il tag {tag.name} ({i+1}/{tag_length})... ")
         
             commit = tag.commit
             
@@ -100,7 +98,6 @@ def _create_csv_file(
                 sast_analyzer=sast_analyzer,
                 secret_analyzer=secret_analyzer,
                 cyclomatic_complexity_analyzer=cyclomatic_analyzer,
-                verbose=verbose,
             )
             
             # Salva i dati del commit corrente nel file CSV
@@ -162,10 +159,12 @@ def _create_csv_file(
             code_data_list.append(code_data)
             previus_tag = tag.name
             
-    print(f"\n\nAnalisi completata. I risultati sono stati salvati in {csv_file_path}.")
-
+    log(f"\n\nAnalisi completata. I risultati sono stati salvati in {csv_file_path}.")
 
 if __name__ == "__main__":
+    
+    python_csv_name = 'python_code_analysis.csv'
+    all_csv_name = 'all_code_analysis.csv'
     
     # Scarica il repository se non è già presente
     parser = argparse.ArgumentParser(
@@ -177,11 +176,11 @@ The results are saved in CSV files for further analysis.
         usage="python tool.py <repo_url> [options]",
     )
     parser.add_argument("repo_url", type=str, help="The URL of the Git repository to analyze.")
-    parser.add_argument("--analyze_all_file", action="store_true", help="Create 2 CSV files, one with only python analysis and one with all file in repo directory.")
+    parser.add_argument("--analyze_all_file", action="store_true", help=f"The script will be run twrice, once for the {python_csv_name} (will analyze only python files) and once for the {all_csv_name} which will include all files without filtering by language.")
     parser.add_argument("--no-sast", action="store_true", help="Disable SAST analyzer. ~20percent faster")
     parser.add_argument("--no-secret", action="store_true", help="Disable secret analyzer. ~15percent faster")
     parser.add_argument("--no-cyclomatic", action="store_true", help="Disable cyclomatic complexity analyzer. ~30percent faster")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Show verbose log.")
+    parser.add_argument("--log", action="store_true", help="Save logs to a file.")
     
     args = parser.parse_args()
     
@@ -190,16 +189,9 @@ The results are saved in CSV files for further analysis.
     sast_analyzer = not args.no_sast
     secret_analyzer = not args.no_secret
     cyclomatic_analyzer = not args.no_cyclomatic
-    verbose = args.verbose
     
     repo = clone_repo.clone_repo(repo_url)
     repo_name = repo_url.rstrip('/').split('/')[-1].split('.git')[0]
-    
-    # Esegui l'analisi del repository
-    tags = repo.tags
-    if len(tags) < 2:
-        print("Non ci sono abbastanza tag per identificare le tendenze.")
-        exit(1)
         
     # Crea la cartella "analytics/repo_name" se non esiste ed utilizzala come output per i file
     base_path = os.path.join("analytics", repo_name)
@@ -214,20 +206,30 @@ The results are saved in CSV files for further analysis.
     
     # Ensure the "analytics" directory exists
     os.makedirs(base_path, exist_ok=True)
-       
+    
+    # inizializza il logger
+    init_logging(
+        os.path.join(base_path, "log.txt"), 
+        save_file=args.log,
+    )
+    
+    # Esegui l'analisi del repository
+    tags = repo.tags
+    if len(tags) < 2:
+        log("Non ci sono abbastanza tag per identificare le tendenze.")
+        exit(1)
+              
     # Open a CSV file to save the analysis results
-    csv_python_file_path = os.path.join(base_path, "python_code_analysis.csv")
-    csv_total_file_path = os.path.join(base_path, "all_code_analysis.csv")
+    csv_python_file_path = os.path.join(base_path, python_csv_name)
+    csv_total_file_path = os.path.join(base_path, all_csv_name)
     
     start_time_python = time.time()
     _create_csv_file(csv_python_file_path, tags)
     end_time_python = time.time()
-    if verbose:
-        print(f"Execution time for Python code analysis: {end_time_python - start_time_python:.2f} seconds")
+    log(f"Execution time for Python code analysis: {end_time_python - start_time_python:.2f} seconds")
 
     if analyze_all_file:
         start_time_total = time.time()
         _create_csv_file(csv_total_file_path, tags)
         end_time_total = time.time()
-        if verbose:
-            print(f"Execution time for total code analysis: {end_time_total - start_time_total:.2f} seconds")
+        log(f"Execution time for total code analysis: {end_time_total - start_time_total:.2f} seconds")

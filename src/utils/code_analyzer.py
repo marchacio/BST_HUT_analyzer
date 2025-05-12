@@ -5,6 +5,8 @@ from src.utils.secret_analyzer import find_secrets_in_file
 from src.utils.cyclomatic_complexity_analyzer import analyze_file_complexity
 import ast
 
+from .log import log
+
 def _read_code_data(code: str) -> dict:
     
     function_count = 0
@@ -40,7 +42,7 @@ def _read_code_data(code: str) -> dict:
                 
     except SyntaxError:
         # Handle cases where the code might have syntax errors
-        #print("Warning: Could not parse file due to SyntaxError. Skipping function counting for this file.")
+        #log("Warning: Could not parse file due to SyntaxError. Skipping function counting for this file.")
         pass
     
     return {
@@ -56,7 +58,6 @@ def code_analyzer_per_commit(
     sast_analyzer: bool = True,
     secret_analyzer: bool = True,
     cyclomatic_complexity_analyzer: bool = True,
-    verbose: bool = False,
 ) -> dict:
     """
     Analyzes the code in a commit and returns a dictionary with the number of functions, async functions, and classes.
@@ -145,7 +146,7 @@ def code_analyzer_per_commit(
                     final_code_data['total_files'] += 1
                     
                 except Exception as e:
-                    print(f"Error processing file {entry.path}: {e}")
+                    log(f"Error processing file {entry.path}: {e}")
                     # Continue to the next file even if one fails
                     pass
                 
@@ -203,9 +204,7 @@ def code_analyzer_per_commit(
         }
             
         for finding in commit_secret_findings:
-            # log:
-            if verbose:
-                print(f"[Secret] {finding['file']}:{finding['line']} - {finding['description']} (Tipo: {finding['type']}) - Match: '{finding['match']}'")
+            log(f"[Secret] {finding['file']}:{finding['line']} - {finding['description']} (Tipo: {finding['type']}) - Match: '{finding['match']}'")
             
             if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
                 severity_counts[finding['severity']] += 1

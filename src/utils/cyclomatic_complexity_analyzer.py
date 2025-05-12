@@ -1,6 +1,8 @@
 import os
 import ast
 
+from .log import log
+
 # Classe visitatore AST per calcolare la complessità ciclomica
 # Contiamo i punti decisionali: if, for, while, except, and, or, assert, case
 class ComplexityVisitor(ast.NodeVisitor):
@@ -117,11 +119,11 @@ def analyze_file_complexity(code: str, file_path:str) -> list[dict]:
             # visiterà comunque i FunctionDef/AsyncFunctionDef al loro interno.
 
     except FileNotFoundError:
-        print(f"Errore: File non trovato {file_path}")
+        log(f"Errore: File non trovato {file_path}")
     except SyntaxError as e:
         if file_path and file_path.endswith('.py'):
-            print(f"Attenzione: Errore di sintassi nel file {file_path}: {e}")
+            log(f"Attenzione: Errore di sintassi nel file {file_path}: {e}")
     except Exception as e:
-        print(f"Si è verificato un errore inatteso durante l'analisi di {file_path}: {e}")
+        log(f"Si è verificato un errore inatteso durante l'analisi di {file_path}: {e}")
 
     return complexities

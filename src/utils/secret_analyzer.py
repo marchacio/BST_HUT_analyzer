@@ -1,5 +1,7 @@
 import re
 
+from .log import log
+
 # Definizione dei pattern regex per cercare potenziali segreti hardcoded.
 # Questi sono esempi comuni e non sono esaustivi.
 # La rilevazione di segreti è intrinsecamente soggetta a falsi positivi e negativi.
@@ -71,8 +73,8 @@ def find_secrets_in_file(code:str, file_path:str) -> list[dict]:
                     })
 
     except FileNotFoundError:
-        print(f"Errore: File non trovato {file_path}")
+        log(f"Errore: File non trovato {file_path}")
     except Exception as e:
-        print(f"Si è verificato un errore durante la scansione dei segreti in {file_path}: {e}")
+        log(f"Si è verificato un errore durante la scansione dei segreti in {file_path}: {e}")
 
     return secrets_found
