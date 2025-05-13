@@ -20,6 +20,7 @@ SECRET_PATTERNS = [
     {'name': 'GitHub Token', 'severity': 'High', 'regex': r'ghp_[0-9a-zA-Z]{36}', 'description': 'Potenziale token GitHub hardcoded (ghp_).'},
     {'name': 'Slack Token', 'severity': 'High', 'regex': r'xox[baprs]-[^"\s]+', 'description': 'Potenziale token Slack hardcoded (xox[baprs]-).'},
     # Aggiungi altri pattern specifici se necessario
+    {'name': 'HTTP call', 'severity': 'Medium', 'regex': r'http[s]?://[^\s]+', 'description': 'Potenziale chiamata HTTP hardcoded.'},
 ]
 
 def find_secrets_in_file(code:str, file_path:str) -> list[dict]:
