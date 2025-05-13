@@ -6,7 +6,6 @@ import time
 
 from src.utils.log import init_logging, log
 
-analyze_all_file = True
 sast_analyzer = True
 secret_analyzer = True
 cyclomatic_analyzer = True
@@ -14,10 +13,9 @@ cyclomatic_analyzer = True
 def _create_csv_file(
     csv_file_path: str, 
     tags: list, 
+    analyze_all_file: bool = False,
 ):
-    
-    code_data_list = []
-    
+        
     with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
         csv_writer = csv.writer(csv_file)
         
@@ -156,7 +154,6 @@ def _create_csv_file(
             
             csv_writer.writerow(data)
             
-            code_data_list.append(code_data)
             previus_tag = tag.name
             
     log(f"\n\nAnalisi completata. I risultati sono stati salvati in {csv_file_path}.")
@@ -176,11 +173,11 @@ The results are saved in CSV files for further analysis.
         usage="python tool.py <repo_url> [options]",
     )
     parser.add_argument("repo_url", type=str, help="The URL of the Git repository to analyze.")
-    parser.add_argument("--analyze_all_file", action="store_true", help=f"The script will be run twrice, once for the {python_csv_name} (will analyze only python files) and once for the {all_csv_name} which will include all files without filtering by language.")
+    parser.add_argument("--analyze-all-file", action="store_true", help=f"The script will be run twrice, once for the {python_csv_name} (will analyze only python files) and once for the {all_csv_name} which will include all files without filtering by language.")
     parser.add_argument("--no-sast", action="store_true", help="Disable SAST analyzer. ~20percent faster")
     parser.add_argument("--no-secret", action="store_true", help="Disable secret analyzer. ~15percent faster")
     parser.add_argument("--no-cyclomatic", action="store_true", help="Disable cyclomatic complexity analyzer. ~30percent faster")
-    parser.add_argument("--log", action="store_true", help="Save logs to a file.")
+    parser.add_argument("--no-log", action="store_true", help="Disable saving logs to a file log.txt")
     
     args = parser.parse_args()
     
@@ -210,7 +207,7 @@ The results are saved in CSV files for further analysis.
     # inizializza il logger
     init_logging(
         os.path.join(base_path, "log.txt"), 
-        save_file=args.log,
+        save_file=(not args.no_log),
     )
     
     # Esegui l'analisi del repository
@@ -224,12 +221,12 @@ The results are saved in CSV files for further analysis.
     csv_total_file_path = os.path.join(base_path, all_csv_name)
     
     start_time_python = time.time()
-    _create_csv_file(csv_python_file_path, tags)
+    _create_csv_file(csv_python_file_path, tags, analyze_all_file=False)
     end_time_python = time.time()
     log(f"Execution time for Python code analysis: {end_time_python - start_time_python:.2f} seconds")
 
     if analyze_all_file:
         start_time_total = time.time()
-        _create_csv_file(csv_total_file_path, tags)
+        _create_csv_file(csv_total_file_path, tags, analyze_all_file=True)
         end_time_total = time.time()
         log(f"Execution time for total code analysis: {end_time_total - start_time_total:.2f} seconds")

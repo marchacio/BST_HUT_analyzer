@@ -130,8 +130,8 @@ def analyze_python_file_for_sast(code: str, file_path:str) -> list[dict]:
     """
     findings = []
     try:
-        tree = ast.parse(code)
-
+        tree = ast.parse(code, type_comments=True, filename=file_path)
+        
         for node in ast.walk(tree):
             # Cerchiamo le chiamate a funzioni
             if isinstance(node, ast.Call):
@@ -196,7 +196,7 @@ def analyze_python_file_for_sast(code: str, file_path:str) -> list[dict]:
     except SyntaxError as e:
         # Controlla esplicitamente se è un file .py prima di stampare l'avviso
         if file_path and file_path.endswith('.py'):
-             log(f"Attenzione: Errore di sintassi nel file {file_path}: {e}")
+             log(f"[SAST] Attenzione: Errore di sintassi nel file {file_path}: {e}")
     except Exception as e:
         # Cattura altri potenziali errori di parsing
         log(f"Si è verificato un errore inatteso durante l'analisi di {file_path}: {e}")

@@ -122,7 +122,7 @@ def analyze_file_complexity(code: str, file_path:str) -> list[dict]:
         log(f"Errore: File non trovato {file_path}")
     except SyntaxError as e:
         if file_path and file_path.endswith('.py'):
-            log(f"Attenzione: Errore di sintassi nel file {file_path}: {e}")
+            log(f"[CC] Attenzione: Errore di sintassi nel file {file_path}: {e}")
     except Exception as e:
         log(f"Si è verificato un errore inatteso durante l'analisi di {file_path}: {e}")
 
