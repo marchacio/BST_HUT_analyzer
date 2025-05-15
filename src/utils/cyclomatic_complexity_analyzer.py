@@ -85,7 +85,7 @@ def analyze_file_complexity(code: str, file_path:str) -> list[dict]:
     """
     complexities = []
     try:
-
+        #WORKS only with Python source code
         tree = ast.parse(code)
 
         # Calcola la complessità per l'intero modulo

@@ -55,6 +55,7 @@ def _read_code_data(code: str) -> dict:
 
 def code_analyzer_per_commit(
     commit: Commit, 
+    file_extension:str,
     analyze_all_file:bool,
     sast_analyzer: bool = True,
     secret_analyzer: bool = True,
@@ -98,71 +99,70 @@ def code_analyzer_per_commit(
     
     # Lista per tenere traccia dei risultati del cyclomatic complexity analyzer
     commit_cyclomatic_complexity_findings = []
-
-    for entry in tree.trees:
-        for blob in entry.blobs:
-            
-            # If the blob is a Python file, count the functions in it
-            if analyze_all_file or blob.path.endswith('.py'):
-                try:
-                    # Get the file content
-                    file_content = blob.data_stream.read()
-                    
-                    # add the content of the file to the total_bytes
-                    total_bytes += file_content
-                    
-                    if sast_analyzer:
-                        #------------------- SAST Analysis ------------------
-                        # Analizza il file corrente e ottieni i findings
-                        findings_in_file = analyze_python_file_for_sast(file_content, blob.path)
-                        # Aggiungi i findings di questo file alla lista totale
-                        commit_sast_findings.extend(findings_in_file)
-                        #----------------------------------------------------
-                    
-                    if secret_analyzer:
-                        #------------------- Secret Analysis ------------------
-                        # Analizza il file corrente e ottieni i segreti
-                        secrets_in_file = find_secrets_in_file(file_content, blob.path)
-                        # Aggiungi i segreti di questo file alla lista totale
-                        commit_secret_findings.extend(secrets_in_file)
-                        #----------------------------------------------------
-                    
-                    if cyclomatic_complexity_analyzer:
-                        #------------------- Cyclomatic Complexity Analysis ------------------
-                        # Analizza il file corrente e ottieni la complessità ciclomica
-                        complexity_in_file = analyze_file_complexity(file_content, blob.path)
-                        # Aggiungi i risultati di questo file alla lista totale
-                        commit_cyclomatic_complexity_findings.extend(complexity_in_file)
-                        #---------------------------------------------------------------------
-                    
-                    if text_metrics_analyzer:
-                        #------------------- Text Metrics Analysis ------------------
-                        # Analizza il file corrente e ottieni le metriche
-                        text_metrics = analyze_file_text_metrics(blob.path, file_content.decode('utf-8', errors='replace'))
-                        # Aggiungi le metriche di questo file alla lista totale
-                        if text_metrics['longest_line_length'] > final_code_data.get('longest_line_length', 0):
-                            final_code_data['longest_line_length'] = text_metrics['longest_line_length']
-                            final_code_data['longest_line_file'] = text_metrics['file']
-                            
-                        final_code_data['blank_space_ratio'] = max(final_code_data.get('blank_space_ratio', 0), text_metrics['blank_space_ratio'])
-                        #--------------------------------------------------------------
-                    
-                    code_data = _read_code_data(file_content)
-                    
-                    # add the content of the file to the dependecies
-                    dependecies.update(code_data['dependecies_set'])
-                    
-                    final_code_data['function_count'] += code_data['function_count']
-                    final_code_data['async_function_count'] += code_data['async_function_count']
-                    final_code_data['class_count'] += code_data['class_count']
-                    
-                    final_code_data['total_loc'] += len(file_content.splitlines())
-                    final_code_data['total_files'] += 1
-                    
-                except Exception as e:
-                    log(f"Error processing file {entry.path}: {e}")
-                    # Continue to the next file even if one fails
-                    pass
+    
+    for blob in tree.traverse():
+        # Skip blobs that are not files
+        if blob.type == 'blob' and (analyze_all_file or blob.path.endswith(file_extension)):
+            # log(f"Processing file: {blob.path}")
+            try:
+                # Get the file content
+                file_content = blob.data_stream.read()
+                
+                # add the content of the file to the total_bytes
+                total_bytes += file_content
+                
+                if sast_analyzer:
+                    #------------------- SAST Analysis ------------------
+                    # Analizza il file corrente e ottieni i findings
+                    findings_in_file = analyze_python_file_for_sast(file_content, blob.path)
+                    # Aggiungi i findings di questo file alla lista totale
+                    commit_sast_findings.extend(findings_in_file)
+                    #----------------------------------------------------
+                
+                if secret_analyzer:
+                    #------------------- Secret Analysis ------------------
+                    # Analizza il file corrente e ottieni i segreti
+                    secrets_in_file = find_secrets_in_file(file_content, blob.path)
+                    # Aggiungi i segreti di questo file alla lista totale
+                    commit_secret_findings.extend(secrets_in_file)
+                    #----------------------------------------------------
+                
+                if cyclomatic_complexity_analyzer:
+                    #------------------- Cyclomatic Complexity Analysis ------------------
+                    # Analizza il file corrente e ottieni la complessità ciclomica
+                    complexity_in_file = analyze_file_complexity(file_content, blob.path)
+                    # Aggiungi i risultati di questo file alla lista totale
+                    commit_cyclomatic_complexity_findings.extend(complexity_in_file)
+                    #---------------------------------------------------------------------
+                
+                if text_metrics_analyzer:
+                    #------------------- Text Metrics Analysis ------------------
+                    # Analizza il file corrente e ottieni le metriche
+                    text_metrics = analyze_file_text_metrics(blob.path, file_content.decode('utf-8', errors='replace'))
+                    # Aggiungi le metriche di questo file alla lista totale
+                    if text_metrics['longest_line_length'] > final_code_data.get('longest_line_length', 0):
+                        final_code_data['longest_line_length'] = text_metrics['longest_line_length']
+                        final_code_data['longest_line_file'] = text_metrics['file']
+                        
+                    final_code_data['blank_space_ratio'] = max(final_code_data.get('blank_space_ratio', 0), text_metrics['blank_space_ratio'])
+                    #--------------------------------------------------------------
+                
+                code_data = _read_code_data(file_content)
+                
+                # add the content of the file to the dependecies
+                dependecies.update(code_data['dependecies_set'])
+                
+                final_code_data['function_count'] += code_data['function_count']
+                final_code_data['async_function_count'] += code_data['async_function_count']
+                final_code_data['class_count'] += code_data['class_count']
+                
+                final_code_data['total_loc'] += len(file_content.splitlines())
+                final_code_data['total_files'] += 1
+                
+            except Exception as e:
+                log(f"Error processing file {blob.path}: {e}")
+                # Continue to the next file even if one fails
+                pass
                 
     entropy = calculate_shannon_entropy(total_bytes)
     final_code_data['entropy'] = entropy

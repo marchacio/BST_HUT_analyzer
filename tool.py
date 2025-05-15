@@ -6,9 +6,11 @@ import time
 
 from src.utils.log import init_logging, log
 
+file_extension = 'js'
 sast_analyzer = True
 secret_analyzer = True
 cyclomatic_analyzer = True
+text_metrics_analyzer = True
 
 def _create_csv_file(
     csv_file_path: str, 
@@ -100,7 +102,8 @@ def _create_csv_file(
             
             # Ottieni i dati del commit
             code_data = code_analyzer.code_analyzer_per_commit(
-                commit, 
+                commit,
+                file_extension=file_extension,
                 analyze_all_file=analyze_all_file,
                 sast_analyzer=sast_analyzer,
                 secret_analyzer=secret_analyzer,
@@ -177,9 +180,6 @@ def _create_csv_file(
 
 if __name__ == "__main__":
     
-    python_csv_name = 'python_code_analysis.csv'
-    all_csv_name = 'all_code_analysis.csv'
-    
     # Scarica il repository se non è già presente
     parser = argparse.ArgumentParser(
         description="""Analyze a Git repository for code and security metrics.
@@ -190,7 +190,8 @@ The results are saved in CSV files for further analysis.
         usage="python tool.py <repo_url> [options]",
     )
     parser.add_argument("repo_url", type=str, help="The URL of the Git repository to analyze.")
-    parser.add_argument("--analyze-all-file", action="store_true", help=f"The script will be run twrice, once for the {python_csv_name} (will analyze only python files) and once for the {all_csv_name} which will include all files without filtering by language. ~70percent slower")
+    parser.add_argument("--file-extension", "-e", type=str, default="js", help="The file extension to analyze. Default is 'js'.")
+    parser.add_argument("--analyze-all-file", action="store_true", help=f"The script will be run twrice, once for the [language].csv (will analyze only python files) and once for the all.csv which will include all files without filtering by language. ~70percent slower")
     parser.add_argument("--no-sast", action="store_true", help="Disable SAST analyzer. ~20percent faster")
     parser.add_argument("--no-secret", action="store_true", help="Disable secret analyzer. ~15percent faster")
     parser.add_argument("--no-cyclomatic", action="store_true", help="Disable cyclomatic complexity analyzer. ~30percent faster")
@@ -200,6 +201,7 @@ The results are saved in CSV files for further analysis.
     args = parser.parse_args()
     
     repo_url = args.repo_url
+    file_extension = args.file_extension
     analyze_all_file = args.analyze_all_file
     sast_analyzer = not args.no_sast
     secret_analyzer = not args.no_secret
@@ -238,8 +240,8 @@ The results are saved in CSV files for further analysis.
         exit(1)
               
     # Open a CSV file to save the analysis results
-    csv_python_file_path = os.path.join(base_path, python_csv_name)
-    csv_total_file_path = os.path.join(base_path, all_csv_name)
+    csv_python_file_path = os.path.join(base_path, f'{file_extension}_code_analysis.csv')
+    csv_total_file_path = os.path.join(base_path, 'all_code_analysis.csv')
     
     start_time_python = time.time()
     _create_csv_file(csv_python_file_path, tags, analyze_all_file=False)
