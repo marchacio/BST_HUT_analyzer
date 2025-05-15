@@ -73,6 +73,15 @@ def _create_csv_file(
             ]
         else:
             log("Cyclomatic complexity analyzer is disabled. Skipping cyclomatic complexity findings.")
+            
+        if text_metrics_analyzer:
+            header += [
+                'Longest_Line_Length',
+                'Blank_Space_Ratio',
+                'Longest_Line_File',
+            ]
+        else:
+            log("Text metrics analyzer is disabled. Skipping text metrics findings.")
         
         # Write the header row
         csv_writer.writerow(header),
@@ -96,6 +105,7 @@ def _create_csv_file(
                 sast_analyzer=sast_analyzer,
                 secret_analyzer=secret_analyzer,
                 cyclomatic_complexity_analyzer=cyclomatic_analyzer,
+                text_metrics_analyzer=text_metrics_analyzer,
             )
             
             # Salva i dati del commit corrente nel file CSV
@@ -151,6 +161,13 @@ def _create_csv_file(
                     code_data.get('cc_method_average', 0),
                 ]
             
+            if text_metrics_analyzer:
+                data += [
+                    code_data.get('longest_line_length', 0),
+                    code_data.get('blank_space_ratio', 0),
+                    code_data.get('longest_line_file', ''),
+                ]
+            
             
             csv_writer.writerow(data)
             
@@ -173,10 +190,11 @@ The results are saved in CSV files for further analysis.
         usage="python tool.py <repo_url> [options]",
     )
     parser.add_argument("repo_url", type=str, help="The URL of the Git repository to analyze.")
-    parser.add_argument("--analyze-all-file", action="store_true", help=f"The script will be run twrice, once for the {python_csv_name} (will analyze only python files) and once for the {all_csv_name} which will include all files without filtering by language.")
+    parser.add_argument("--analyze-all-file", action="store_true", help=f"The script will be run twrice, once for the {python_csv_name} (will analyze only python files) and once for the {all_csv_name} which will include all files without filtering by language. ~70percent slower")
     parser.add_argument("--no-sast", action="store_true", help="Disable SAST analyzer. ~20percent faster")
     parser.add_argument("--no-secret", action="store_true", help="Disable secret analyzer. ~15percent faster")
     parser.add_argument("--no-cyclomatic", action="store_true", help="Disable cyclomatic complexity analyzer. ~30percent faster")
+    parser.add_argument("--no-text-metrics", action="store_true", help="Disable text metrics analyzer. ~10percent faster")
     parser.add_argument("--no-log", action="store_true", help="Disable saving logs to a file log.txt")
     
     args = parser.parse_args()
@@ -186,6 +204,7 @@ The results are saved in CSV files for further analysis.
     sast_analyzer = not args.no_sast
     secret_analyzer = not args.no_secret
     cyclomatic_analyzer = not args.no_cyclomatic
+    text_metrics_analyzer = not args.no_text_metrics
     
     repo = clone_repo.clone_repo(repo_url)
     repo_name = repo_url.rstrip('/').split('/')[-1].split('.git')[0]
@@ -209,6 +228,8 @@ The results are saved in CSV files for further analysis.
         os.path.join(base_path, "log.txt"), 
         save_file=(not args.no_log),
     )
+    
+    log('Script Arguments: ' + str(args),)
     
     # Esegui l'analisi del repository
     tags = repo.tags

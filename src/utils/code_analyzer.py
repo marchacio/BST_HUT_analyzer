@@ -3,6 +3,7 @@ from src.utils.shannon_entropy import calculate_shannon_entropy
 from src.utils.sast_analyzer import analyze_python_file_for_sast
 from src.utils.secret_analyzer import find_secrets_in_file
 from src.utils.cyclomatic_complexity_analyzer import analyze_file_complexity
+from src.utils.text_metrics_analyzer import analyze_file_text_metrics
 import ast
 
 from .log import log
@@ -58,6 +59,7 @@ def code_analyzer_per_commit(
     sast_analyzer: bool = True,
     secret_analyzer: bool = True,
     cyclomatic_complexity_analyzer: bool = True,
+    text_metrics_analyzer: bool = True,
 ) -> dict:
     """
     Analyzes the code in a commit and returns a dictionary with the number of functions, async functions, and classes.
@@ -132,6 +134,18 @@ def code_analyzer_per_commit(
                         # Aggiungi i risultati di questo file alla lista totale
                         commit_cyclomatic_complexity_findings.extend(complexity_in_file)
                         #---------------------------------------------------------------------
+                    
+                    if text_metrics_analyzer:
+                        #------------------- Text Metrics Analysis ------------------
+                        # Analizza il file corrente e ottieni le metriche
+                        text_metrics = analyze_file_text_metrics(blob.path, file_content.decode('utf-8', errors='replace'))
+                        # Aggiungi le metriche di questo file alla lista totale
+                        if text_metrics['longest_line_length'] > final_code_data.get('longest_line_length', 0):
+                            final_code_data['longest_line_length'] = text_metrics['longest_line_length']
+                            final_code_data['longest_line_file'] = text_metrics['file']
+                            
+                        final_code_data['blank_space_ratio'] = max(final_code_data.get('blank_space_ratio', 0), text_metrics['blank_space_ratio'])
+                        #--------------------------------------------------------------
                     
                     code_data = _read_code_data(file_content)
                     
