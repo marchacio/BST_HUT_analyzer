@@ -79,8 +79,11 @@ def _create_csv_file(
         if text_metrics_analyzer:
             header += [
                 'Longest_Line_Length',
-                'Blank_Space_Ratio',
                 'Longest_Line_File',
+                'Relative_Higher_Blank_Space_Ratio',
+                'Absolute_Blank_Space_Ratio',
+                'Total_Chars',
+                'Total_Blank_Spaces',
             ]
         else:
             log("Text metrics analyzer is disabled. Skipping text metrics findings.")
@@ -167,8 +170,11 @@ def _create_csv_file(
             if text_metrics_analyzer:
                 data += [
                     code_data.get('longest_line_length', 0),
-                    code_data.get('blank_space_ratio', 0),
                     code_data.get('longest_line_file', ''),
+                    code_data.get('relative_higher_blank_space_ratio', 0),
+                    code_data.get('blank_space_ratio', 0),
+                    code_data.get('total_chars', 0),
+                    code_data.get('total_blank_spaces', 0),
                 ]
             
             

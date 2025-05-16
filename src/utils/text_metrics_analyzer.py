@@ -35,9 +35,11 @@ def analyze_file_text_metrics(file_path:str, code: str) -> dict:
         log(f"[FILE_TEXT_METRICS] {file_path}: {e}")
         # Ritorna risultati vuoti per questo file
         return {
-            'file': file_path, 
-            'longest_line_length': 0, 
-            'blank_space_ratio': 0.0
+            'file': file_path,
+            'longest_line_length': 0,
+            'blank_space_ratio': 0.0,
+            'total_chars': 0,
+            'total_blank_spaces': 0
         }
 
     # Calcola il rapporto solo se ci sono caratteri totali per evitare divisione per zero
@@ -47,4 +49,6 @@ def analyze_file_text_metrics(file_path:str, code: str) -> dict:
         'file': file_path,
         'longest_line_length': longest_line_length,
         'blank_space_ratio': blank_space_ratio,
+        'total_chars': total_chars,
+        'total_blank_spaces': total_blank_spaces
     }

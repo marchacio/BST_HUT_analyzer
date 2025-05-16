@@ -100,6 +100,9 @@ def code_analyzer_per_commit(
     # Lista per tenere traccia dei risultati del cyclomatic complexity analyzer
     commit_cyclomatic_complexity_findings = []
     
+    total_chars = 0
+    total_blank_spaces = 0
+    
     for blob in tree.traverse():
         # Skip blobs that are not files
         if blob.type == 'blob' and (analyze_all_file or blob.path.endswith(file_extension)):
@@ -144,7 +147,11 @@ def code_analyzer_per_commit(
                         final_code_data['longest_line_length'] = text_metrics['longest_line_length']
                         final_code_data['longest_line_file'] = text_metrics['file']
                         
-                    final_code_data['blank_space_ratio'] = max(final_code_data.get('blank_space_ratio', 0), text_metrics['blank_space_ratio'])
+                    final_code_data['relative_higher_blank_space_ratio'] = max(final_code_data.get('relative_higher_blank_space_ratio', 0), text_metrics['blank_space_ratio'])
+                    
+                    # Aggiorna i totali
+                    total_chars += text_metrics['total_chars']
+                    total_blank_spaces += text_metrics['total_blank_spaces']
                     #--------------------------------------------------------------
                 
                 code_data = _read_code_data(file_content)
@@ -262,5 +269,11 @@ def code_analyzer_per_commit(
         
         final_code_data['cc_method_count'] = len(method_set)
         final_code_data['cc_method_average'] = sum(method_set) / len(method_set) if method_set else 0
+            
+    if text_metrics_analyzer:
+        # Calcola il rapporto solo se ci sono caratteri totali per evitare divisione per zero
+        final_code_data['blank_space_ratio'] = total_blank_spaces / total_chars if total_chars > 0 else 0.0
+        final_code_data['total_chars'] = total_chars
+        final_code_data['total_blank_spaces'] = total_blank_spaces
             
     return final_code_data 
