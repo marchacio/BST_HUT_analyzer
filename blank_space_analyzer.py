@@ -4,6 +4,17 @@ import pandas as pd
 import sys
 from src.utils.clone_repo import clone_repo
 import time
+import argparse
+from src.utils.git_manipulator import perform_local_git_manipulation
+
+
+filter = [
+    ".git",
+    "node_modules",  # escludi node_modules per repo JS
+    "vendor",       # escludi vendor per repo PHP
+    "test",         # escludi test
+]
+
 
 def calculate_blank_space_ratio(file_path):
     """
@@ -24,7 +35,7 @@ def calculate_blank_space_ratio(file_path):
         print(f"Errore durante l'analisi del file {file_path}: {e}")
         return None
 
-def analyze_repo_blank_space_ratio(repo:Repo, repo_path:str, output_csv_path="blank_space_ratio.csv"):
+def analyze_repo_blank_space_ratio(repo:Repo, repo_path:str, extension:str, output_csv_path="blank_space_ratio.csv"):
     """
     Analizza un repository Git per ogni tag, calcolando il blank_space_ratio per ogni file.
     I risultati vengono salvati in un CSV.
@@ -41,7 +52,7 @@ def analyze_repo_blank_space_ratio(repo:Repo, repo_path:str, output_csv_path="bl
 
     for idx, tag in enumerate(tags):
         tag_name = tag.name
-        print(f"Analisi del tag: {tag_name} ({idx}/{n_tags})", end=' ')
+        print(f"\r\tAnalisi del tag: {tag_name} ({idx+1}/{n_tags})", end='', flush=True)
         
         # Checkout del tag
         repo.git.checkout(tag.commit)
@@ -49,8 +60,12 @@ def analyze_repo_blank_space_ratio(repo:Repo, repo_path:str, output_csv_path="bl
         current_files_ratio = {}
         for root, _, files in os.walk(repo_path):
             for file_name in files:
-                # Ignora la directory .git e file binari comuni
-                if '.git' in root or ('node_modules' in file_name) or file_name.endswith(('.pyc', '.o', '.so', '.dll', '.exe', '.zip', '.tar.gz', '.jpg', '.png', '.gif', '.bmp', '.pdf')):
+                # Ignora i file contenuti in directory di filtro: filter
+                if any(f in root for f in filter):
+                    continue
+                
+                # Filtra per estensione se richiesta
+                if extension and not file_name.endswith(f".{extension}"):
                     continue
                 
                 file_path = os.path.join(root, file_name)
@@ -89,9 +104,7 @@ def analyze_repo_blank_space_ratio(repo:Repo, repo_path:str, output_csv_path="bl
     print(f"Tempo impiegato per l'analisi: {elapsed_time:.2f} secondi")
     
     
-import pandas as pd
-
-def analyze_blank_space_ratio_changes(csv_path, threshold_s=0.5):
+def analyze_blank_space_ratio_changes(csv_path, threshold_s=0.5, log_path=None):
     """
     Analizza un CSV di blank_space_ratio per identificare cambiamenti significativi.
 
@@ -117,55 +130,87 @@ def analyze_blank_space_ratio_changes(csv_path, threshold_s=0.5):
 
     print(f"Analisi delle differenze nel rapporto spazi bianchi con soglia S = {threshold_s}\n")
 
-    found_significant_changes = False
+    file_changes = {}
 
     for i in range(len(tags) - 1):
         tag_prev = tags[i]
         tag_curr = tags[i+1]
 
-        # Considera solo i valori numerici e gestisci i valori mancanti come NaN
-        # Converti i valori vuoti o non numerici in NaN, poi fillna(method='ffill') o fillna(0) se necessario
-        # Per questo caso specifico, vogliamo NaN per indicare che il file non esiste ancora o è stato rimosso
         series_prev = pd.to_numeric(df[tag_prev], errors='coerce')
         series_curr = pd.to_numeric(df[tag_curr], errors='coerce')
         
         diff = (series_curr - series_prev).abs()
 
-        # Itera sui file per trovare le differenze significative
         for file_path, difference in diff.items():
-            # Controlla se il file esisteva in entrambi i tag e la differenza è significativa
             if pd.notna(difference) and difference > threshold_s:
                 ratio_prev = series_prev.loc[file_path]
                 ratio_curr = series_curr.loc[file_path]
-
-                # Filtra ulteriormente per assicurarsi che i valori originali non siano NaN
                 if pd.notna(ratio_prev) and pd.notna(ratio_curr):
-                    print(f"File: {file_path}")
-                    print(f"  Tag precedente ({tag_prev}): {ratio_prev:.4f}")
-                    print(f"  Tag corrente ({tag_curr}): {ratio_curr:.4f}")
-                    print(f"  Differenza assoluta: {difference:.4f} (Supera soglia {threshold_s})")
-                    print("-" * 50)
-                    found_significant_changes = True
+                    if file_path not in file_changes:
+                        file_changes[file_path] = {
+                            "count": 1,
+                            "examples": [(tag_prev, ratio_prev, tag_curr, ratio_curr, difference)]
+                        }
+                    else:
+                        file_changes[file_path]["count"] += 1
+                        file_changes[file_path]["examples"].append(
+                            (tag_prev, ratio_prev, tag_curr, ratio_curr, difference)
+                        )
+                        
+    def _print(message):
+        if log_path:
+            with open(log_path, 'a') as log_file:
+                log_file.write(message + '\n')
+        
+        print(message)
 
-    if not found_significant_changes:
-        print(f"Nessun cambiamento significativo nel rapporto spazi bianchi è stato trovato sopra la soglia di {threshold_s}.")
+    if not file_changes:
+        _print(f"Nessun cambiamento significativo nel rapporto spazi bianchi è stato trovato sopra la soglia di {threshold_s}.")
+    else:
+        for file_path, info in file_changes.items():
+            _print(f"--FILE: {file_path} (trovato {info['count']} volte)")
+            # Mostra solo il primo esempio per brevità, oppure tutti se preferisci
+            for tag_prev, ratio_prev, tag_curr, ratio_curr, difference in info["examples"]:
+                _print(f"  Tag precedente ({tag_prev}): {ratio_prev:.4f}")
+                _print(f"  Tag corrente ({tag_curr}): {ratio_curr:.4f}")
+                _print(f"  Differenza assoluta: {difference:.4f} (Supera soglia {threshold_s})")
+                _print('\n')
+            _print("-" * 50)
+
+    _print(f"Analisi completata. {sum(info['count'] for info in file_changes.values())} cambiamenti significativi trovati.")
 
 # --- Esempio di utilizzo ---
 if __name__ == "__main__":
     
-    # scarica il repo passato come primo argomento
-    repo_url = sys.argv[1] if len(sys.argv) > 1 else ""
+    # Parser per argomenti da linea di comando
+    parser = argparse.ArgumentParser(description="Analizza il rapporto spazi bianchi nei file di un repository.")
+    parser.add_argument("repo_url", help="URL del repository da analizzare")
+    parser.add_argument("-e", "--extension", default=None, help="Estensione dei file da analizzare (es: py, js, txt). Se non specificata, analizza tutti i file di testo.")
+    args = parser.parse_args()
+
+    repo_url = args.repo_url
     repo_name = repo_url.rstrip('/').split('/')[-1]
     repo_name = repo_name.split('.git')[0]  # Rimuovi .git se presente
-    
+
     repo = clone_repo(repo_url)
     repo_path = repo.working_tree_dir
     
+    # Esegui la manipolazione locale del repository (se necessario)
+    edited_file = perform_local_git_manipulation(repo_path, 
+        file_extension=args.extension,
+        filters=filter
+    )
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     print(current_dir)
-    output_csv = os.path.join(current_dir, "analytics", repo_name, "blank_space_ratio_report.csv",)
+
+    output_dir = os.path.join(current_dir, "analytics", repo_name)
+    os.makedirs(output_dir, exist_ok=True)
+    output_csv = os.path.join(output_dir, f"{repo_name}_blank_space_ratio_report.csv")
     print(f"Output CSV: {output_csv}")
+    output_log = os.path.join(output_dir, f"{repo_name}_blank_space_ratio_report.log")
+    print(f"Output Log: {output_log}")
+
+    analyze_repo_blank_space_ratio(repo, repo_path, args.extension, output_csv)
     
-    analyze_repo_blank_space_ratio(repo, repo_path, output_csv)
-    
-    analyze_blank_space_ratio_changes(output_csv, 2)
+    analyze_blank_space_ratio_changes(output_csv, 2, output_log)
