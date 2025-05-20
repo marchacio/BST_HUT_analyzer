@@ -2,10 +2,11 @@ from git import Repo
 import os
 import pandas as pd
 import sys
+# Assumendo che queste importazioni siano correttamente configurate nel tuo ambiente
 from src.utils.clone_repo import clone_repo
+from src.utils.git_manipulator import perform_local_git_manipulation
 import time
 import argparse
-from src.utils.git_manipulator import perform_local_git_manipulation
 
 
 filter = [
@@ -91,9 +92,9 @@ def analyze_repo_blank_space_ratio(repo:Repo, repo_path:str, extension:str, outp
     try:
         current_branch = repo.active_branch.name
         repo.git.checkout(current_branch)
-        print(f"Ripristinato il repository al branch: {current_branch}")
+        print(f"\nRipristinato il repository al branch: {current_branch}")
     except Exception as e:
-        print(f"Attenzione: Impossibile ripristinare il repository al branch originale. Potrebbe essere in stato di 'detached HEAD'. Errore: {e}")
+        print(f"\nAttenzione: Impossibile ripristinare il repository al branch originale. Potrebbe essere in stato di 'detached HEAD'. Errore: {e}")
         print("Si prega di ripristinare manualmente il branch desiderato (es. 'git checkout master').")
 
     # Salva il DataFrame in un CSV
@@ -104,14 +105,18 @@ def analyze_repo_blank_space_ratio(repo:Repo, repo_path:str, extension:str, outp
     print(f"Tempo impiegato per l'analisi: {elapsed_time:.2f} secondi")
     
     
-def analyze_blank_space_ratio_changes(csv_path, threshold_s=0.5, log_path=None):
+def analyze_blank_space_ratio_changes(csv_path, threshold_mean=0.5, threshold_previous=0.5, log_path=None):
     """
-    Analizza un CSV di blank_space_ratio per identificare cambiamenti significativi.
+    Analizza un CSV di blank_space_ratio per identificare cambiamenti significativi
+    rispetto alla media dei tag precedenti E rispetto al tag precedente.
 
     Args:
         csv_path (str): Il percorso al file CSV generato dallo script precedente.
-        threshold_s (float): La soglia minima per la differenza assoluta
-                             tra i rapporti di due tag consecutivi per essere considerata significativa.
+        threshold_mean (float): La soglia minima per la deviazione assoluta
+                                dal rapporto medio dei tag precedenti.
+        threshold_previous (float): La soglia minima per la differenza assoluta
+                                    tra il rapporto corrente e il rapporto del tag precedente.
+        log_path (str, optional): Il percorso del file di log.
     """
     try:
         df = pd.read_csv(csv_path, index_col=0)
@@ -125,59 +130,98 @@ def analyze_blank_space_ratio_changes(csv_path, threshold_s=0.5, log_path=None):
     tags = df.columns.tolist()
     
     if len(tags) < 2:
-        print("Il CSV contiene meno di due tag. Non è possibile calcolare le differenze tra tag successivi.")
+        print("Il CSV contiene meno di due tag. Non è possibile calcolare le differenze.")
         return
 
-    print(f"Analisi delle differenze nel rapporto spazi bianchi con soglia S = {threshold_s}\n")
+    print(f"Analisi delle deviazioni (media e precedente) con soglie: Media={threshold_mean}, Precedente={threshold_previous}\n")
 
-    file_changes = {}
+    file_deviations = {}
 
-    for i in range(len(tags) - 1):
-        tag_prev = tags[i]
-        tag_curr = tags[i+1]
-
-        series_prev = pd.to_numeric(df[tag_prev], errors='coerce')
-        series_curr = pd.to_numeric(df[tag_curr], errors='coerce')
-        
-        diff = (series_curr - series_prev).abs()
-
-        for file_path, difference in diff.items():
-            if pd.notna(difference) and difference > threshold_s:
-                ratio_prev = series_prev.loc[file_path]
-                ratio_curr = series_curr.loc[file_path]
-                if pd.notna(ratio_prev) and pd.notna(ratio_curr):
-                    if file_path not in file_changes:
-                        file_changes[file_path] = {
-                            "count": 1,
-                            "examples": [(tag_prev, ratio_prev, tag_curr, ratio_curr, difference)]
-                        }
-                    else:
-                        file_changes[file_path]["count"] += 1
-                        file_changes[file_path]["examples"].append(
-                            (tag_prev, ratio_prev, tag_curr, ratio_curr, difference)
-                        )
-                        
     def _print(message):
         if log_path:
             with open(log_path, 'a') as log_file:
                 log_file.write(message + '\n')
         
         print(message)
+    
+    # Cancella il file di log se esiste
+    if log_path and os.path.exists(log_path):
+        os.remove(log_path)
 
-    if not file_changes:
-        _print(f"Nessun cambiamento significativo nel rapporto spazi bianchi è stato trovato sopra la soglia di {threshold_s}.")
+    for file_path in df.index:
+        
+        # Estrai i rapporti per il file corrente, converti in numerico e gestisci NaN
+        ratios = pd.to_numeric(df.loc[file_path], errors='coerce')
+        
+        # Iteriamo sui tag partendo dal secondo tag (indice 1), poiché abbiamo bisogno di un tag precedente
+        for i in range(1, len(tags)):
+            tag_curr_name = tags[i]
+            tag_prev_name = tags[i-1] # Il tag immediatamente precedente
+            
+            ratio_curr = ratios.loc[tag_curr_name] # Il rapporto corrente per questo tag
+
+            # Se il rapporto corrente non esiste o è NaN, saltiamo
+            if pd.isna(ratio_curr):
+                continue 
+
+            # Inizializza le variabili con valori di default che non soddisferanno la condizione
+            # se i calcoli non sono possibili.
+            ratio_prev = float('nan') # Inizializza a NaN per indicare che non è disponibile
+            mean_prev_ratios = float('nan') # Inizializza a NaN
+            deviation_from_previous = float('inf') 
+            deviation_from_mean = float('inf') 
+
+            # Calcolo deviazione dal tag precedente
+            if pd.notna(ratios.loc[tag_prev_name]): # Controlla se il rapporto precedente esiste
+                ratio_prev = ratios.loc[tag_prev_name]
+                deviation_from_previous = abs(ratio_curr - ratio_prev)
+            
+            # Calcolo deviazione dalla media dei tag precedenti
+            # Prendi i rapporti dei tag *precedenti* al tag corrente (da 0 a i-1)
+            previous_tags_for_mean_ratios = ratios.iloc[:i].dropna()
+
+            # Abbiamo bisogno di almeno un valore valido per calcolare la media
+            if len(previous_tags_for_mean_ratios) > 0:
+                mean_prev_ratios = previous_tags_for_mean_ratios.mean()
+                deviation_from_mean = abs(ratio_curr - mean_prev_ratios)
+
+            # --- VERIFICA ENTRAMBE LE CONDIZIONI ---
+            # Si verificherà che deviation_from_previous e deviation_from_mean
+            # non siano 'inf' (cioè siano stati calcolati) E che superino le soglie.
+            if (deviation_from_previous != float('inf') and deviation_from_previous > threshold_previous and
+                deviation_from_mean != float('inf') and deviation_from_mean > threshold_mean):
+
+                if file_path not in file_deviations:
+                    file_deviations[file_path] = []
+                
+                file_deviations[file_path].append({
+                    "tag_current": tag_curr_name,
+                    "tag_previous": tag_prev_name, 
+                    "ratio_current": ratio_curr,
+                    "ratio_previous": ratio_prev, # Qui ratio_previous potrebbe essere NaN se non esisteva
+                    "mean_previous_ratios": mean_prev_ratios, # Qui mean_previous_ratios potrebbe essere NaN se non calcolato
+                    "deviation_from_previous": deviation_from_previous,
+                    "deviation_from_mean": deviation_from_mean
+                })
+                        
+    if not file_deviations:
+        _print(f"Nessun cambiamento significativo (rispetto alla media E al precedente) è stato trovato sopra le soglie: Media={threshold_mean}, Precedente={threshold_previous}.")
     else:
-        for file_path, info in file_changes.items():
-            _print(f"--FILE: {file_path} (trovato {info['count']} volte)")
-            # Mostra solo il primo esempio per brevità, oppure tutti se preferisci
-            for tag_prev, ratio_prev, tag_curr, ratio_curr, difference in info["examples"]:
-                _print(f"  Tag precedente ({tag_prev}): {ratio_prev:.4f}")
-                _print(f"  Tag corrente ({tag_curr}): {ratio_curr:.4f}")
-                _print(f"  Differenza assoluta: {difference:.4f} (Supera soglia {threshold_s})")
+        total_deviations_found = 0
+        for file_path, deviations_list in file_deviations.items():
+            _print(f"--FILE: {file_path}")
+            for dev_info in deviations_list:
+                _print(f"  Tag corrente ({dev_info['tag_current']}): {dev_info['ratio_current']:.4f}")
+                # Formatta solo se non è NaN
+                _print(f"  Tag precedente ({dev_info['tag_previous']}): {dev_info['ratio_previous']:.4f}" if pd.notna(dev_info['ratio_previous']) else f"  Tag precedente ({dev_info['tag_previous']}): N/A")
+                _print(f"  Media dei tag precedenti: {dev_info['mean_previous_ratios']:.4f}" if pd.notna(dev_info['mean_previous_ratios']) else f"  Media dei tag precedenti: N/A")
+                _print(f"  Deviazione dal precedente: {dev_info['deviation_from_previous']:.4f} (Soglia {threshold_previous})")
+                _print(f"  Deviazione dalla media: {dev_info['deviation_from_mean']:.4f} (Soglia {threshold_mean})")
                 _print('\n')
+                total_deviations_found += 1
             _print("-" * 50)
 
-    _print(f"Analisi completata. {sum(info['count'] for info in file_changes.values())} cambiamenti significativi trovati.")
+    _print(f"Analisi completata. {total_deviations_found} deviazioni significative trovate.")
 
 # --- Esempio di utilizzo ---
 if __name__ == "__main__":
@@ -186,6 +230,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analizza il rapporto spazi bianchi nei file di un repository.")
     parser.add_argument("repo_url", help="URL del repository da analizzare")
     parser.add_argument("-e", "--extension", default=None, help="Estensione dei file da analizzare (es: py, js, txt). Se non specificata, analizza tutti i file di testo.")
+    parser.add_argument("-sm", "--threshold_mean", type=float, default=1.0, 
+                        help="Soglia di deviazione per la media dei rapporti precedenti. Default è 2.0.")
+    parser.add_argument("-sp", "--threshold_previous", type=float, default=1.0, 
+                        help="Soglia di deviazione per il rapporto del tag precedente. Default è 1.0.")
     args = parser.parse_args()
 
     repo_url = args.repo_url
@@ -196,13 +244,15 @@ if __name__ == "__main__":
     repo_path = repo.working_tree_dir
     
     # Esegui la manipolazione locale del repository (se necessario)
-    edited_file = perform_local_git_manipulation(repo_path, 
-        file_extension=args.extension,
-        filters=filter
+    # NOTA: Assicurati che perform_local_git_manipulation accetti l'argomento 'filters'
+    edited_file_path = perform_local_git_manipulation(
+        repo_path, 
+        file_extension=args.extension if args.extension else ".py", 
+        filters=filter 
     )
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    print(current_dir)
+    print(f"Current directory: {current_dir}")
 
     output_dir = os.path.join(current_dir, "analytics", repo_name)
     os.makedirs(output_dir, exist_ok=True)
@@ -213,4 +263,14 @@ if __name__ == "__main__":
 
     analyze_repo_blank_space_ratio(repo, repo_path, args.extension, output_csv)
     
-    analyze_blank_space_ratio_changes(output_csv, 2, output_log)
+    # Passa le due soglie separate
+    analyze_blank_space_ratio_changes(output_csv, args.threshold_mean, args.threshold_previous, output_log)
+    
+    edited_file_last_line_n = None
+    if edited_file_path and os.path.exists(edited_file_path):
+        with open(edited_file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+            edited_file_last_line_n = len(lines)
+        print(f"Il file a cui è stata aggiunta una \"backdoor\": {edited_file_path}:{edited_file_last_line_n}")
+    else:
+        print("Il file modificato non è stato trovato o l'operazione di manipolazione non è riuscita.")
