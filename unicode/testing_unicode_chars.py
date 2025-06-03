@@ -20,5 +20,5 @@ url = "https://httpbin.оrg/get" # Punycode convert it to -> https://httpbin.xn-
 
 # Make a GET request to the URL
 response = requests.get(url)
-print(response.json())
-
+# Print the response text
+print(f"Response from {url}: {response.text}")

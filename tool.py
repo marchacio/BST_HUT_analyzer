@@ -188,6 +188,12 @@ if __name__ == "__main__":
     
     #Test su file gia esistente:
     print(u'wowowow ‏ Ciao Bellissimo ‏ provola')
+    
+    def ciao():
+        print("Ciao Mondo!")
+        
+    def ciaօ():
+        print("Ciao Mondo con caratteri speciali!")
        
     # Scarica il repository se non è già presente
     parser = argparse.ArgumentParser(
