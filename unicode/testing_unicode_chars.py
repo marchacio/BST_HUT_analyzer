@@ -9,14 +9,14 @@ print("Testing ZERO WIDTH NON-JOINER (U+200C):‌ Prova di cara‌ttere non uni�
 print("Testing ZERO WIDTH JOINER (U+200D):‍ ‍Prova‍ di cara‍ttere uni‍to‍")
 
 # Test with RTL MARK: https://unicode-explorer.com/c/200F
-print(u"Testing RIGHT-TO-LEFT MARK (U+200F):‏ Prova di car‏attere da destra a sinistra")
+print(u"Testing RIGHT-TO-LEFT MARK (U+200F):⁧ Prova di carattere da destra a sinistra")
 # Test with LEFT-TO-RIGHT MARK: https://unicode-explorer.com/c/200E
 print("Testing LEFT-TO-RIGHT MARK (U+200E):‎ Prova di car‎attere da sinistra a destra")
 
 
 # Test with a network call:
 import requests
-url = "https://httpbin.оrg/get" # Punycode convert it to -> https://httpbin.xn--rg-emc/get
+url = "https://ᖯin.org/get" # Punycode convert it to -> https://xn--httpin-z84a.org/get
 
 # Make a GET request to the URL
 response = requests.get(url)
