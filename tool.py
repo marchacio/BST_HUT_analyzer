@@ -186,7 +186,11 @@ def _create_csv_file(
 
 if __name__ == "__main__":
     
-    print('wowowow ⁧Ciao Bellissimo⁩ provola')
+    #Test 1
+    print(u'wowowow \u2067 Ciao Bellissimo \u2069 provola')
+    
+    #Test 2
+    print(u'wowowow ⁧ Ciao Bellissimo ⁩ provola')
     
     # Scarica il repository se non è già presente
     parser = argparse.ArgumentParser(
