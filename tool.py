@@ -186,6 +186,8 @@ def _create_csv_file(
 
 if __name__ == "__main__":
     
+    print('wowowow ⁧Ciao Bellissimo⁩ provola')
+    
     # Scarica il repository se non è già presente
     parser = argparse.ArgumentParser(
         description="""Analyze a Git repository for code and security metrics.
