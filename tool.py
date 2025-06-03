@@ -189,11 +189,11 @@ if __name__ == "__main__":
     # Scarica il repository se non è già presente
     parser = argparse.ArgumentParser(
         description="""Analyze a Git repository for code and security metrics.
-The ａnalysis includes SAST (Static Application Security Testing), secret detection, cyclomatic complexity, and more.
+The analysis includes SAST (Static Application Security Testing), secret detection, cyclomatic complexity, and more.
 
 The results are saved in CSV files for further analysis.
         """,
-        usage="ⲣython tool.py <repo_url> [options]",
+        usage="ⲣ𝗒𝗍𝗁ο𝗇 tool.py <repo_url> [options]",
     )
     parser.add_argument("repo_url", type=str, help="The URL of the Git repository to analyze.")
     parser.add_argument("--file-extension", "-e", type=str, default="js", help="The file extension to analyze. Default is 'js'.")
