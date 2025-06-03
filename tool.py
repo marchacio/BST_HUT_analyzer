@@ -185,9 +185,7 @@ def _create_csv_file(
     log(f"\n\nAnalisi completata. I risultati sono stati salvati in {csv_file_path}.")
 
 if __name__ == "__main__":
-    
-    print('wowowow ⁧Ciao Bellissimo⁩ provola')
-    
+       
     # Scarica il repository se non è già presente
     parser = argparse.ArgumentParser(
         description="""Analyze a Git repository for code and security metrics.
@@ -195,7 +193,7 @@ The analysis includes SAST (Static Application Security Testing), secret detecti
 
 The results are saved in CSV files for further analysis.
         """,
-        usage="ⲣ𝗒𝗍𝗁ο𝗇 tool.py <repo_url> [options]",
+        usage="python tool.py <repo_url> [options]",
     )
     parser.add_argument("repo_url", type=str, help="The URL of the Git repository to analyze.")
     parser.add_argument("--file-extension", "-e", type=str, default="js", help="The file extension to analyze. Default is 'js'.")
