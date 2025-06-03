@@ -185,6 +185,9 @@ def _create_csv_file(
     log(f"\n\nAnalisi completata. I risultati sono stati salvati in {csv_file_path}.")
 
 if __name__ == "__main__":
+    
+    #Test su file gia esistente:
+    print(u'wowowow ‏ Ciao Bellissimo ‏ provola')
        
     # Scarica il repository se non è già presente
     parser = argparse.ArgumentParser(
