@@ -192,7 +192,10 @@ if __name__ == "__main__":
     def ciao():
         print("Ciao Mondo!")
         
-    def ciaօ():
+    def cia():
+        url = "https://httpbin​.org/get"
+        # Make a GET request to the URL
+        response = requests.get(url)
         print("Ciao Mondo con caratteri speciali!")
        
     # Scarica il repository se non è già presente
