@@ -5,7 +5,12 @@ import sys
 import time
 import argparse
 import multiprocessing # Importa multiprocessing
-from functools import partial # Utile per passare argomenti fissi a map
+
+
+# Fix relative imports. See https://stackoverflow.com/a/16985066
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
 from src.utils.clone_repo import clone_repo
 from src.utils.git_manipulator import perform_local_git_manipulation
 
@@ -61,17 +66,8 @@ def analyze_repo_blank_space_ratio(repo:Repo, repo_path:str, extension:str,
     n_tags = len(tags)
     if n_tags == 0:
         print("Nessun tag trovato nel repository. Analisi interrotta.")
-        # Prova ad analizzare il commit corrente se non ci sono tag
-        # Potresti voler gestire il caso in cui non ci sono tag,
-        # ad esempio analizzando il commit HEAD corrente.
-        # Per ora, usciamo se non ci sono tag.
-        # Se vuoi analizzare HEAD, dovrai modificare la logica per gestire un "tag fittizio" o il commit corrente.
-        # head_commit = repo.head.commit
-        # tags = [type('obj', (object,), {'name': 'HEAD', 'commit': head_commit })] # Oggetto fittizio simile a un tag
-        # n_tags = 1
-        # print("Nessun tag trovato. Analizzo HEAD.")
-        # if not tags: # Assicurati che ci sia qualcosa da analizzare
         print("Nessun tag trovato. Analisi interrotta.")
+        
         # Crea DataFrame vuoti se non ci sono tag per evitare errori successivi
         pd.DataFrame().to_csv(ratio_output_csv_path)
         pd.DataFrame().to_csv(max_line_length_output_csv_path)
@@ -380,7 +376,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Analizza il rapporto spazi bianchi nei file di un repository.")
     parser.add_argument("repo_url", help="URL del repository da analizzare")
-    parser.add_argument("-e", "--extension", default=None, help="Estensione dei file da analizzare (es: py, js, txt). Se non specificata, analizza tutti i file.")
+    parser.add_argument("-e", "--extension", required=True, help="Estensione dei file da analizzare (es: py, js, txt). Se non specificata, analizza tutti i file.")
     parser.add_argument("-sm", "--threshold_mean", type=float, default=1.0, 
                         help="Soglia di deviazione per la media dei rapporti precedenti. Default è 1.0.")
     parser.add_argument("-sp", "--threshold_previous", type=float, default=1.0, 
@@ -406,13 +402,12 @@ if __name__ == "__main__":
     # Esegui la manipolazione locale del repository
     # NOTA: perform_local_git_manipulation ora usa 'filter_dirs'
     edited_file_path = perform_local_git_manipulation(
-        repo_path, 
+        repo_path,
         file_extension=args.extension if args.extension else ".py", # Passa .py se nessuna estensione è data per la manipolazione
         filters=filter_dirs, # Usa la variabile globale filter_dirs
         n_blank_chars=args.num_empty_chars
     )
 
-    # current_dir = os.path.dirname(os.path.abspath(__file__)) # Questo potrebbe non essere affidabile se lo script è impacchettato
     current_dir = os.getcwd() # Usa la directory di lavoro corrente per l'output
     print(f"Current working directory for output: {current_dir}")
 
@@ -437,6 +432,7 @@ if __name__ == "__main__":
         num_processes=args.num_processes # Passa il numero di processi
     )
     
+    # Stampa l'analisi delle deviazioni
     analyze_blank_space_ratio_changes(
         output_ratio_csv, 
         args.threshold_mean, 
