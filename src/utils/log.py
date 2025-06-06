@@ -27,7 +27,10 @@ def init_logging(log_file:str, save_file:bool, level=logging.INFO):
         # per evitare di appendere i nuovi log a quelli vecchi.
         if os.path.exists(log_file):
             os.remove(log_file)
-        
+        else:
+            # Crea il file se non esiste
+            os.makedirs(os.path.dirname(log_file), exist_ok=True)
+                    
         # 1. Handler per il file di log
         # 'a' significa append, quindi i nuovi log verranno aggiunti alla fine del file esistente.
         # encoding='utf-8' assicura la corretta gestione dei caratteri speciali.
