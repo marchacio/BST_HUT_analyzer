@@ -71,34 +71,35 @@ STRINGS=(
     https://github.com/sweetalert2/sweetalert2
     https://github.com/jorgebucaran/hyperapp
     https://github.com/developit/mitt
-    https://github.com/molefrog/wouter
-    https://github.com/remeda/remeda
-    https://github.com/ianstormtaylor/superstruct
-    https://github.com/omgovich/colord
-    https://github.com/vercel/ms
-    https://github.com/redom/redom
-    https://github.com/frejs/fre
-    https://github.com/vanjs-org/van
-    https://github.com/ai/nanoid
-    https://github.com/elbywan/wretch
-    https://github.com/selfrefactor/rambda
-    https://github.com/marpple/FxTS
-    https://github.com/davidmerfield/randomColor
-    https://github.com/nanostores/nanostores
-    https://github.com/developit/unistore
-    https://github.com/preactjs/signals
-    https://github.com/tj/commander.js
-    https://github.com/SBoudrias/Inquirer.js
-    https://github.com/chalk/chalk
-    https://github.com/sindresorhus/ora
-    https://github.com/juliangarnier/anime
-    https://github.com/visjs/vis-network
-    https://github.com/vadimdemedes/ink
-    https://github.com/pmndrs/jotai
-    https://github.com/dc-js/dc.js
-    https://github.com/nhn/tui.chart
-    https://github.com/bpmn-io/diagram-js
-    https://github.com/graphology/graphology
+
+    # https://github.com/molefrog/wouter
+    # https://github.com/remeda/remeda
+    # https://github.com/ianstormtaylor/superstruct
+    # https://github.com/omgovich/colord
+    # https://github.com/vercel/ms
+    # https://github.com/redom/redom
+    # https://github.com/frejs/fre
+    # https://github.com/vanjs-org/van
+    # https://github.com/ai/nanoid
+    # https://github.com/elbywan/wretch
+    # https://github.com/selfrefactor/rambda
+    # https://github.com/marpple/FxTS
+    # https://github.com/davidmerfield/randomColor
+    # https://github.com/nanostores/nanostores
+    # https://github.com/developit/unistore
+    # https://github.com/preactjs/signals
+    # https://github.com/tj/commander.js
+    # https://github.com/SBoudrias/Inquirer.js
+    # https://github.com/chalk/chalk
+    # https://github.com/sindresorhus/ora
+    # https://github.com/juliangarnier/anime
+    # https://github.com/visjs/vis-network
+    # https://github.com/vadimdemedes/ink
+    # https://github.com/pmndrs/jotai
+    # https://github.com/dc-js/dc.js
+    # https://github.com/nhn/tui.chart
+    # https://github.com/bpmn-io/diagram-js
+    # https://github.com/graphology/graphology
 )
 
 # --- Esecuzione ---
@@ -112,7 +113,7 @@ for s in "${STRINGS[@]}"; do
     echo "Esecuzione per la stringa: \"$s\""
     # Esegue il comando python, passando la stringa come argomento
     # Le virgolette attorno a "$s" sono importanti per gestire stringhe con spazi
-    python $PYTHON_SCRIPT $s -e js
+    python3 $PYTHON_SCRIPT $s -e js
     
     # Puoi aggiungere qui ulteriori comandi o logica
     # Ad esempio, per controllare lo stato di uscita del comando Python:
