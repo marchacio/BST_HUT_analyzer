@@ -1,22 +1,19 @@
 import time
-import math
 import pandas as pd
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict
 
 from src.core.analyzer import BaseAnalyzer, FileAnalysisResult, TagAnalysisResult
-from config.config import AnalysisConfig
-from src.utils.clone_repo import clone_repo
 
 class BlankSpaceAnalyzer(BaseAnalyzer):
     """
-    Analyzer per calcolare il rapporto degli spazi bianchi e la lunghezza massima
-    delle righe nei file di un repository, identificando deviazioni significative tra i tag.
+    Analyzer to calculate the whitespace ratio and maximum line length
+    in repository files, identifying significant deviations between tags.
     """
 
     def analyze_file(self, file_path: Path) -> FileAnalysisResult:
         """
-        Calcola il blank_space_ratio e la lunghezza massima della riga per un singolo file.
+        Calculates the blank_space_ratio and maximum line length for a single file.
         """
         start_time = time.time()
         try:
@@ -39,13 +36,13 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
             return FileAnalysisResult(
                 file_path=str(file_path),
                 metrics=metrics,
-                anomalies=[],  # Le anomalie sono rilevate a livello di repository
+                anomalies=[],  # Anomalies are detected at the repository level
                 confidence_score=1.0,
                 processing_time=time.time() - start_time,
                 error=None
             )
         except Exception as e:
-            self.logger.error(f"Errore durante l'analisi del file {file_path}: {e}")
+            self.logger.error(f"Error while analyzing file {file_path}: {e}")
             return FileAnalysisResult(
                 file_path=str(file_path),
                 metrics={},
@@ -57,16 +54,17 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
 
     def _export_to_csv(self, results: Dict[str, TagAnalysisResult], output_dir: Path):
         """
-        Esporta i risultati delle metriche `blank_space_ratio` e `max_line_length`
-        in due file CSV separati.
+        Exports the `blank_space_ratio` and `max_line_length` metrics results
+        into two separate CSV files.
         """
-        self.logger.info("Esportazione dei risultati di BlankSpaceAnalyzer in CSV...")
+        self.logger.info("Exporting BlankSpaceAnalyzer results to CSV...")
         
         ratio_data = {}
         max_line_length_data = {}
         all_files = set()
 
-        repo_path = Path(next(iter(results.values())).file_results[0].file_path).parent.parent # Stima repo_path
+        # Estimate repo_path
+        repo_path = Path(next(iter(results.values())).file_results[0].file_path).parent.parent 
         
         for tag_name, tag_result in results.items():
             ratio_tag_data = {}
@@ -85,7 +83,7 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
             max_line_length_data[tag_name] = max_line_length_tag_data
 
         if not all_files:
-            self.logger.warning("Nessun file analizzato. I file CSV saranno vuoti.")
+            self.logger.warning("No files analyzed. The CSV files will be empty.")
             return
 
         sorted_files = sorted(list(all_files))
@@ -103,5 +101,5 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
         ratio_df.to_csv(ratio_output_path, na_rep='')
         max_line_length_df.to_csv(max_line_output_path, na_rep='')
 
-        self.logger.info(f"Report Blank Space Ratio salvato in: {ratio_output_path}")
-        self.logger.info(f"Report Max Line Length salvato in: {max_line_output_path}")
+        self.logger.info(f"Blank Space Ratio report saved to: {ratio_output_path}")
+        self.logger.info(f"Max Line Length report saved to: {max_line_output_path}")

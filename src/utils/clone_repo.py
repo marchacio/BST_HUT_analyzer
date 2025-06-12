@@ -2,7 +2,7 @@ from git import Repo
 import os
 from logging import Logger
 
-def clone_repo(repo_url, logger:Logger, repos_dir="repos"):
+def clone_repo(repo_url, logger: Logger, repos_dir="repos"):
     """
     Clones a Git repository from the given URL into a local directory.
     This function checks if a local directory named "repos" exists in the relative path
@@ -24,22 +24,22 @@ def clone_repo(repo_url, logger:Logger, repos_dir="repos"):
         - The `.git` suffix in the repository URL is automatically removed if present.
     """
     
-    # Crea la cartella "repos" se non esiste
+    # Create the "repos" folder if it doesn't exist
     if not os.path.exists(repos_dir):
         os.makedirs(repos_dir)
 
-    # Estrai il nome del repo dal link
+    # Extract the repo name from the link
     repo_name = repo_url.rstrip('/').split('/')[-1]
-    repo_name = repo_name.split('.git')[0]  # Rimuovi .git se presente
+    repo_name = repo_name.split('.git')[0]  # Remove .git if present
     repo_path = os.path.join(repos_dir, repo_name)
 
-    # Clona il repository se non è già presente
+    # Clone the repository if it is not already present
     if not os.path.exists(repo_path):
-        logger.info(f"Clonazione di {repo_url}...")
+        logger.info(f"Cloning {repo_url}...")
         Repo.clone_from(repo_url, repo_path)
     else:
-        logger.info(f"Il repository '{repo_name}' è già presente.")
+        logger.info(f"Repository '{repo_name}' is already present.")
 
-    logger.info(f"Repository '{repo_name}' clonato con successo in '{repo_path}'.")
+    logger.info(f"Repository '{repo_name}' successfully cloned to '{repo_path}'.")
 
     return Repo(repo_path)
