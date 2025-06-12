@@ -1,5 +1,4 @@
 import os
-import yaml
 from dataclasses import dataclass
 from typing import List
 
@@ -13,7 +12,6 @@ class AnalysisConfig:
     # Soglie per la detection
     whitespace_threshold_mean: float = 1.0
     whitespace_threshold_previous: float = 1.0
-    unicode_suspicious_threshold: int = 3
     
     # Configurazione performance
     max_processes: int = None
@@ -44,18 +42,6 @@ class AnalysisConfig:
                 "py", "js", "ts", "java", "cpp", "c", "h", 
                 "cs", "go", "rs", "php", "rb", "swift", "kt"
             ]
-    
-    @classmethod
-    def from_yaml(cls, config_path: str) -> 'AnalysisConfig':
-        """Carica configurazione da file YAML"""
-        with open(config_path, 'r') as f:
-            config_data = yaml.safe_load(f)
-        return cls(**config_data)
-    
-    def to_yaml(self, output_path: str):
-        """Salva configurazione in file YAML"""
-        with open(output_path, 'w') as f:
-            yaml.dump(self.__dict__, f, default_flow_style=False)
 
 # Esempio di uso:
 # config = AnalysisConfig()

@@ -6,7 +6,7 @@ from git import Repo
 from logging import Logger
 
 from config.config import AnalysisConfig
-from src.utils.log import init_logging, log
+from src.utils.log import init_logging
 
 @dataclass
 class FileAnalysisResult:
@@ -46,11 +46,6 @@ class BaseAnalyzer(ABC):
     @abstractmethod
     def analyze_file(self, file_path: Path) -> FileAnalysisResult:
         """Analizza un singolo file"""
-        pass
-    
-    @abstractmethod
-    def detect_anomalies(self, results: List[FileAnalysisResult]) -> List[Dict[str, Any]]:
-        """Rileva anomalie nei risultati dell'analisi"""
         pass
     
     def analyze_repository(self, repo: Repo, extension: str) -> Dict[str, TagAnalysisResult]:

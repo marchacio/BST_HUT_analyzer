@@ -2,7 +2,7 @@ import git
 import os
 import random
 
-def perform_local_git_manipulation(repo_path, file_extension=".py", filters=[], n_blank_chars=500):
+def perform_local_git_manipulation(repo_path, file_extension=".py", filters=[], n_blank_chars=500) -> str:
     """
     Esegue manipolazioni locali su un repository Git:
     0. Controlla se l'ultimo tag è "TEST" e se sì, ritorna il file che è stato gia cambiato con l'inserimento della backdoor.

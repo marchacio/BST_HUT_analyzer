@@ -47,29 +47,3 @@ def init_logging(log_file:str, save_file:bool, level=logging.INFO):
     # Questo messaggio verrà mostrato solo se il 'level' è impostato a DEBUG o inferiore.
     global_logger.debug(f"Sistema di logging inizializzato. File di log: {os.path.abspath(log_file)}")
     return global_logger
-
-def log(message, level='info'):
-    """
-    Scrive un messaggio di log sia sulla console che nel file di log.
-
-    Args:
-        message (str): Il messaggio da loggare.
-        level (str): Il livello di log del messaggio ('debug', 'info', 'warning',
-                     'error', 'critical'). Default è 'info'.
-    """
-    global_logger = logging.getLogger('my_tool_logger')
-
-    if global_logger is None:
-        raise RuntimeError("Sistema di logging non inizializzato. Chiama init_logging() nel tuo script principale per primo.")
-
-    # Mappa i nomi dei livelli stringa agli oggetti livello del modulo logging
-    log_level_map = {
-        'debug': logging.DEBUG,
-        'info': logging.INFO,
-        'warning': logging.WARNING,
-        'error': logging.ERROR,
-        'critical': logging.CRITICAL,
-    }
-    numeric_level = log_level_map.get(level.lower(), logging.INFO) # Default a INFO se il livello non è riconosciuto
-
-    global_logger.log(numeric_level, message.strip())
