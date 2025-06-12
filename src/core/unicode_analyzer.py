@@ -11,16 +11,16 @@ from src.core.analyzer import BaseAnalyzer, FileAnalysisResult, TagAnalysisResul
 from config.config import AnalysisConfig
 from src.utils.clone_repo import clone_repo
 
-# Cache per le categorie dei caratteri per migliorare le performance
+# Cache for character categories to improve performance
 _char_category_cache: Dict[str, tuple[str, str]] = {}
 
-# Whitespace characters che non dovrebbero essere considerati sospetti
+# Whitespace characters that should not be considered suspicious
 SAFE_CONTROL_CHARS = {'\n', '\r', '\t', '\f', '\v'}
 
 
 def get_char_categories_cached(char: str) -> tuple[str, str]:
     """
-    Recupera le categorie Unicode e omoglife di un carattere, usando una cache.
+    Retrieves the Unicode and homoglyph categories of a character, using a cache.
     """
     if char not in _char_category_cache:
         try:
@@ -29,7 +29,7 @@ def get_char_categories_cached(char: str) -> tuple[str, str]:
             unicode_cat = 'UNKNOWN'
         
         try:
-            # La libreria homoglyphs può essere lenta, quindi la mettiamo in cache
+            # The homoglyphs library can be slow, so we cache it
             homoglyph_cat = hg.Categories.detect(char)
         except Exception:
             homoglyph_cat = 'UNKNOWN'
@@ -41,20 +41,20 @@ def get_char_categories_cached(char: str) -> tuple[str, str]:
 
 class UnicodeAnalyzer(BaseAnalyzer):
     """
-    Analizzatore per rilevare caratteri Unicode anomali (omoglifi, caratteri nascosti)
-    all'interno di un repository Git. Versione ottimizzata.
+    Analyzer for detecting anomalous Unicode characters (homoglyphs, hidden characters)
+    within a Git repository. Optimized version.
     """
 
     def analyze_file(self, file_path: Path) -> FileAnalysisResult:
         """
-        Analizza un singolo file per calcolare metriche su caratteri Unicode.
-        Questa versione è ottimizzata per analizzare solo i caratteri unici.
+        Analyzes a single file to calculate metrics on Unicode characters.
+        This version is optimized to analyze only unique characters.
 
         Args:
-            file_path: Il percorso del file da analizzare.
+            file_path: The path of the file to be analyzed.
 
         Returns:
-            Un'istanza di FileAnalysisResult con i risultati dell'analisi.
+            An instance of FileAnalysisResult with the analysis results.
         """
         start_time = time.time()
         anomalies: List[Dict[str, Any]] = []
@@ -70,13 +70,13 @@ class UnicodeAnalyzer(BaseAnalyzer):
 
             metrics["total_chars"] = len(content)
             
-            # Ottimizzazione: conta i caratteri unici invece di analizzare ogni carattere
+            # Optimization: count unique characters instead of analyzing every character
             char_counts = Counter(content)
 
             for char, count in char_counts.items():
                 unicode_cat, homoglyph_cat = get_char_categories_cached(char)
 
-                # 1. Controllo omoglifi
+                # 1. Homoglyph check
                 if homoglyph_cat not in ('LATIN', 'COMMON', 'UNKNOWN'):
                     metrics["homoglyph_count"] += count
                     anomalies.append({
@@ -87,7 +87,7 @@ class UnicodeAnalyzer(BaseAnalyzer):
                         "count": count,
                     })
 
-                # 2. Controllo caratteri nascosti o di controllo
+                # 2. Hidden or control character check
                 if unicode_cat in ('Cf', 'Cc', 'Cn', 'Co') and char not in SAFE_CONTROL_CHARS:
                     metrics["hidden_char_count"] += count
                     anomalies.append({
@@ -98,7 +98,7 @@ class UnicodeAnalyzer(BaseAnalyzer):
                         "count": count,
                     })
             
-            # Calcolo del confidence score basato sulla densità di anomalie
+            # Calculate confidence score based on anomaly density
             total_anomalies = metrics["homoglyph_count"] + metrics["hidden_char_count"]
             if metrics["total_chars"] > 0 and total_anomalies > 0:
                 confidence = min(1.0, total_anomalies / metrics["total_chars"] * 100)
@@ -115,7 +115,7 @@ class UnicodeAnalyzer(BaseAnalyzer):
             )
 
         except Exception as e:
-            self.logger.error(f"Errore durante l'analisi del file {file_path}: {e}")
+            self.logger.error(f"Error while analyzing file {file_path}: {e}")
             return FileAnalysisResult(
                 file_path=str(file_path),
                 metrics=metrics,
@@ -127,31 +127,31 @@ class UnicodeAnalyzer(BaseAnalyzer):
 
     def _export_to_csv(self, results: Dict[str, TagAnalysisResult], output_dir: Path):
         """
-        Esporta i risultati dell'analisi Unicode in tre file CSV distinti:
+        Exports the Unicode analysis results into three distinct CSV files:
         - total_chars.csv
         - homoglyphs.csv
         - hidden_chars.csv
 
-        Ogni CSV ha i file come righe e i tag come colonne.
+        Each CSV has files as rows and tags as columns.
 
         Args:
-            results: Un dizionario con i risultati dell'analisi per ogni tag.
-            output_dir: La directory dove salvare i file CSV.
+            results: A dictionary with the analysis results for each tag.
+            output_dir: The directory where to save the CSV files.
         """
-        self.logger.info("Costruzione dei DataFrame per l'export in CSV...")
+        self.logger.info("Building DataFrames for CSV export...")
         
-        # Stima del percorso base del repository dal primo risultato disponibile
+        # Estimate the base repository path from the first available result
         try:
             repo_path_str = next(iter(results.values())).file_results[0].file_path
             repo_path = Path(repo_path_str).parent.parent
         except (StopIteration, IndexError):
-            self.logger.warning("Nessun risultato di file trovato, impossibile determinare il percorso relativo.")
+            self.logger.warning("No file results found, cannot determine relative path.")
             repo_path = None
 
         all_files = set()
         for tag_result in results.values():
             for file_res in tag_result.file_results:
-                # Usiamo percorsi relativi per coerenza
+                # Use relative paths for consistency
                 try:
                     if repo_path:
                         relative_path = Path(file_res.file_path).relative_to(repo_path)
@@ -162,18 +162,18 @@ class UnicodeAnalyzer(BaseAnalyzer):
                     all_files.add(file_res.file_path)
 
         if not all_files:
-            self.logger.warning("Nessun file analizzato, nessun CSV generato.")
+            self.logger.warning("No files analyzed, no CSVs generated.")
             return
             
         sorted_files = sorted(list(all_files))
         tag_names = list(results.keys())
 
-        # Creazione dei DataFrame
+        # Create DataFrames
         df_total = pd.DataFrame(index=sorted_files, columns=tag_names, dtype=object)
         df_homoglyphs = pd.DataFrame(index=sorted_files, columns=tag_names, dtype=object)
         df_hidden = pd.DataFrame(index=sorted_files, columns=tag_names, dtype=object)
 
-        # Popolamento dei DataFrame
+        # Populate DataFrames
         for tag_name, tag_result in results.items():
             for file_res in tag_result.file_results:
                 try:
@@ -189,18 +189,18 @@ class UnicodeAnalyzer(BaseAnalyzer):
                     df_homoglyphs.loc[relative_path, tag_name] = file_res.metrics.get('homoglyph_count')
                     df_hidden.loc[relative_path, tag_name] = file_res.metrics.get('hidden_char_count')
 
-        # Gestione dei valori mancanti e salvataggio
+        # Handle missing values and save
         output_files = {
             "total_chars": output_dir / f"{self.__class__.__name__.lower()}_total_chars.csv",
             "homoglyphs": output_dir / f"{self.__class__.__name__.lower()}_homoglyphs.csv",
             "hidden_chars": output_dir / f"{self.__class__.__name__.lower()}_hidden_chars.csv",
         }
         
-        # Usiamo un valore placeholder per i NaN prima di salvare
+        # Use a placeholder value for NaNs before saving
         df_total.fillna('').to_csv(output_files["total_chars"])
         df_homoglyphs.fillna('').to_csv(output_files["homoglyphs"])
         df_hidden.fillna('').to_csv(output_files["hidden_chars"])
 
-        self.logger.info("Esportazione CSV completata.")
+        self.logger.info("CSV export completed.")
         for name, path in output_files.items():
-            self.logger.info(f" -> File '{name}' salvato in: {path}")
+            self.logger.info(f" -> File '{name}' saved to: {path}")
