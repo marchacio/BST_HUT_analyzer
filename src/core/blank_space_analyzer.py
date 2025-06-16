@@ -20,13 +20,13 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
 
-            all_chars = len(content)
             blank_spaces = content.count(' ') + content.count('\t') + content.count('\n') + content.count('\r')
+            all_chars = len(content) - blank_spaces  # exclude blank spaces from total character count
             
             lines = content.splitlines()
             max_line_length = max((len(line) for line in lines), default=0)
             
-            ratio = float('inf') if blank_spaces == 0 else all_chars / blank_spaces
+            ratio = float('inf') if all_chars == 0 else blank_spaces / all_chars
             
             metrics = {
                 "blank_space_ratio": ratio,
@@ -64,7 +64,16 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
         all_files = set()
 
         # Estimate repo_path
-        repo_path = Path(next(iter(results.values())).file_results[0].file_path).parent.parent 
+        repo_path = None
+        # Search for the first TagAnalysisResult that actually has files
+        for tag_result in results.values():
+            if tag_result.file_results:
+                repo_path = Path(tag_result.file_results[0].file_path).parent.parent
+                break
+
+        if repo_path is None:
+            self.logger.warning("No files were found in any tag. Cannot determine repository path. CSV files will be empty.")
+            return
         
         for tag_name, tag_result in results.items():
             ratio_tag_data = {}

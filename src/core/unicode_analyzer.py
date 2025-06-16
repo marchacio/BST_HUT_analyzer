@@ -140,13 +140,17 @@ class UnicodeAnalyzer(BaseAnalyzer):
         """
         self.logger.info("Building DataFrames for CSV export...")
         
-        # Estimate the base repository path from the first available result
-        try:
-            repo_path_str = next(iter(results.values())).file_results[0].file_path
-            repo_path = Path(repo_path_str).parent.parent
-        except (StopIteration, IndexError):
-            self.logger.warning("No file results found, cannot determine relative path.")
-            repo_path = None
+        # Estimate repo_path
+        repo_path = None
+        # Search for the first TagAnalysisResult that actually has files
+        for tag_result in results.values():
+            if tag_result.file_results:
+                repo_path = Path(tag_result.file_results[0].file_path).parent.parent
+                break
+
+        if repo_path is None:
+            self.logger.warning("No files were found in any tag. Cannot determine repository path. CSV files will be empty.")
+            return
 
         all_files = set()
         for tag_result in results.values():

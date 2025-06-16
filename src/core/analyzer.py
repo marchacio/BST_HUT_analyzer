@@ -115,7 +115,9 @@ class BaseAnalyzer(ABC):
             # Skip filtered directories
             if any(filter_dir in file_path.parts for filter_dir in self.config.filter_dirs):
                 continue
-            files.append(file_path)
+            
+            if file_path.is_file(): # avoid directories with the extension at the end 
+                files.append(file_path)
         
         return files
     

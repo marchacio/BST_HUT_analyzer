@@ -32,7 +32,7 @@ class AnalysisConfig:
             self.filter_dirs = [
                 ".git", "node_modules", "vendor", "test", "tests",
                 "dist", "build", "public", "assets", "bin",
-                "coverage", "logs", "temp", "tmp",
+                "coverage", "logs", "temp", "tmp", "packages",
             ]
 
         if self.max_processes is None:

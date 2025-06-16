@@ -40,7 +40,6 @@ def analyze_unicode(repo_url, extension):
         
         
 if __name__ == "__main__":
-    
     for repo_url in repo_list:
         print(f"Analyzing repository: {repo_url}")
         
