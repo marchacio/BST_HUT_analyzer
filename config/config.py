@@ -9,10 +9,6 @@ class AnalysisConfig:
     # Directory filters
     filter_dirs: List[str] = None
 
-    # Detection thresholds
-    whitespace_threshold_mean: float = 1.0
-    whitespace_threshold_previous: float = 1.0
-
     # Performance configuration
     max_processes: int = None
 

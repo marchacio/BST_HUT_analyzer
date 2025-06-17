@@ -19,9 +19,6 @@ def manipulate_and_analyze_blank_space(repo_url, extension, threshold_mean, thre
         output_format="csv",
         supported_extensions=[extension],
         
-        whitespace_threshold_mean=threshold_mean,
-        whitespace_threshold_previous=threshold_previous,
-        
         log_file=output_dir / "blank_space_analysis.log",
     )
     analyzer = BlankSpaceAnalyzer(config)
