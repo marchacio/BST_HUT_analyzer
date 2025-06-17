@@ -26,18 +26,18 @@ def _read_code_data(code: str) -> dict:
             elif isinstance(node, ast.ClassDef):
                 class_count += 1
             elif isinstance(node, ast.Import):
-                # Gestisce importazioni come 'import module1, module2 as m2'
+                # Handles imports like 'import module1, module2 as m2'
                 for alias in node.names:
-                    # Ci interessa solo il nome del modulo a livello superiore
-                    # es. da 'module1.submodule' prendiamo 'module1'
+                    # We are only interested in the top-level module name
+                    # e.g., from 'module1.submodule' we take 'module1'
                     top_level_name = alias.name.split('.')[0]
                     imported_names.add(top_level_name)
             elif isinstance(node, ast.ImportFrom):
-                # Gestisce importazioni come 'from package import name' o 'from package.sub import name'
-                # Ignora importazioni relative come 'from . import module' (node.level > 0)
+                # Handles imports like 'from package import name' or 'from package.sub import name'
+                # Ignores relative imports like 'from . import module' (node.level > 0)
                 if node.module is not None and node.level == 0:
-                    # Ci interessa solo il nome del pacchetto a livello superiore
-                    # es. da 'package.subpackage' prendiamo 'package'
+                    # We are only interested in the top-level package name
+                    # e.g., from 'package.subpackage' we take 'package'
                     top_level_name = node.module.split('.')[0]
                     imported_names.add(top_level_name)
                 
@@ -50,7 +50,7 @@ def _read_code_data(code: str) -> dict:
         'function_count': function_count,
         'async_function_count': async_function_count,
         'class_count': class_count,
-        'dependecies_set': imported_names,
+        'dependencies_set': imported_names,
     }
 
 def code_analyzer_per_commit(
@@ -85,19 +85,19 @@ def code_analyzer_per_commit(
     # To get all files at a commit, we need to traverse the commit's tree.
     tree = commit.tree
     
-    # Variabile per calcolare l'entropia
+    # Variable to calculate entropy
     total_bytes = b""
     
-    # Set per tenere traccia delle dipendenze
-    dependecies = set()
+    # Set to keep track of dependencies
+    dependencies = set()
     
-    # Lista per tenere traccia dei risultati di SAST (Static Application Security Testing)
+    # List to keep track of SAST (Static Application Security Testing) results
     commit_sast_findings = []
     
-    # Lista per tenere traccia dei risultati del secret analyzer
+    # List to keep track of secret analyzer results
     commit_secret_findings = []
     
-    # Lista per tenere traccia dei risultati del cyclomatic complexity analyzer
+    # List to keep track of cyclomatic complexity analyzer results
     commit_cyclomatic_complexity_findings = []
     
     total_chars = 0
@@ -116,48 +116,48 @@ def code_analyzer_per_commit(
                 
                 if sast_analyzer:
                     #------------------- SAST Analysis ------------------
-                    # Analizza il file corrente e ottieni i findings
+                    # Analyze the current file and get the findings
                     findings_in_file = analyze_python_file_for_sast(file_content, blob.path)
-                    # Aggiungi i findings di questo file alla lista totale
+                    # Add the findings from this file to the total list
                     commit_sast_findings.extend(findings_in_file)
                     #----------------------------------------------------
                 
                 if secret_analyzer:
                     #------------------- Secret Analysis ------------------
-                    # Analizza il file corrente e ottieni i segreti
+                    # Analyze the current file and get the secrets
                     secrets_in_file = find_secrets_in_file(file_content, blob.path)
-                    # Aggiungi i segreti di questo file alla lista totale
+                    # Add the secrets from this file to the total list
                     commit_secret_findings.extend(secrets_in_file)
                     #----------------------------------------------------
                 
                 if cyclomatic_complexity_analyzer:
                     #------------------- Cyclomatic Complexity Analysis ------------------
-                    # Analizza il file corrente e ottieni la complessità ciclomica
+                    # Analyze the current file and get the cyclomatic complexity
                     complexity_in_file = analyze_file_complexity(file_content, blob.path)
-                    # Aggiungi i risultati di questo file alla lista totale
+                    # Add the results from this file to the total list
                     commit_cyclomatic_complexity_findings.extend(complexity_in_file)
                     #---------------------------------------------------------------------
                 
                 if text_metrics_analyzer:
                     #------------------- Text Metrics Analysis ------------------
-                    # Analizza il file corrente e ottieni le metriche
+                    # Analyze the current file and get the metrics
                     text_metrics = analyze_file_text_metrics(blob.path, file_content.decode('utf-8', errors='replace'))
-                    # Aggiungi le metriche di questo file alla lista totale
+                    # Add the metrics from this file to the total list
                     if text_metrics['longest_line_length'] > final_code_data.get('longest_line_length', 0):
                         final_code_data['longest_line_length'] = text_metrics['longest_line_length']
                         final_code_data['longest_line_file'] = text_metrics['file']
                         
                     final_code_data['relative_higher_blank_space_ratio'] = max(final_code_data.get('relative_higher_blank_space_ratio', 0), text_metrics['blank_space_ratio'])
                     
-                    # Aggiorna i totali
+                    # Update the totals
                     total_chars += text_metrics['total_chars']
                     total_blank_spaces += text_metrics['total_blank_spaces']
                     #--------------------------------------------------------------
                 
                 code_data = _read_code_data(file_content)
                 
-                # add the content of the file to the dependecies
-                dependecies.update(code_data['dependecies_set'])
+                # add the content of the file to the dependencies
+                dependencies.update(code_data['dependencies_set'])
                 
                 final_code_data['function_count'] += code_data['function_count']
                 final_code_data['async_function_count'] += code_data['async_function_count']
@@ -174,7 +174,7 @@ def code_analyzer_per_commit(
     entropy = calculate_shannon_entropy(total_bytes)
     final_code_data['entropy'] = entropy
     
-    final_code_data['dependencies_count'] = len(dependecies)
+    final_code_data['dependencies_count'] = len(dependencies)
     
     if sast_analyzer:
         
@@ -191,10 +191,10 @@ def code_analyzer_per_commit(
         }
 
         for finding in commit_sast_findings:
-            if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
+            if finding['severity'] in severity_counts: # Add check for safety
                 severity_counts[finding['severity']] += 1
                 
-                # Aggiungi il finding alla lista corrispondente
+                # Add the finding to the corresponding list
                 if finding['severity'] == 'High':
                     high_set.add(finding['type'])
                 elif finding['severity'] == 'Medium':
@@ -225,12 +225,12 @@ def code_analyzer_per_commit(
         }
             
         for finding in commit_secret_findings:
-            log(f"[Secret] {finding['file']}:{finding['line']} - {finding['description']} (Tipo: {finding['type']}) - Match: '{finding['match']}'")
+            log(f"[Secret] {finding['file']}:{finding['line']} - {finding['description']} (Type: {finding['type']}) - Match: '{finding['match']}'")
             
-            if finding['severity'] in severity_counts: # Aggiungi controllo per sicurezza
+            if finding['severity'] in severity_counts: # Add check for safety
                 severity_counts[finding['severity']] += 1
                 
-                # Aggiungi il finding alla lista corrispondente
+                # Add the finding to the corresponding list
                 if finding['severity'] == 'High':
                     high_set.add(finding['type'])
                 elif finding['severity'] == 'Medium':
@@ -271,9 +271,9 @@ def code_analyzer_per_commit(
         final_code_data['cc_method_average'] = sum(method_set) / len(method_set) if method_set else 0
             
     if text_metrics_analyzer:
-        # Calcola il rapporto solo se ci sono caratteri totali per evitare divisione per zero
+        # Calculate the ratio only if there are total characters to avoid division by zero
         final_code_data['blank_space_ratio'] = total_blank_spaces / total_chars if total_chars > 0 else 0.0
         final_code_data['total_chars'] = total_chars
         final_code_data['total_blank_spaces'] = total_blank_spaces
             
-    return final_code_data 
+    return final_code_data

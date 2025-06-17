@@ -1,75 +1,47 @@
 import logging
 import os
 
-def init_logging(log_file:str, save_file:bool, level=logging.INFO):
+def init_logging(log_file: str, save_file: bool, level=logging.INFO):
     """
-    Inizializza il sistema di logging.
-    Questa funzione deve essere chiamata una sola volta nel tuo script principale (main).
+    Initializes the logging system.
+    This function should be called only once in your main script.
 
     Args:
-        log_file (str): Il nome del file di log. Per default 'log.txt'.
-        level (int): Il livello minimo di logging da registrare.
-                     Esempi: logging.DEBUG, logging.INFO, logging.WARNING,
-                             logging.ERROR, logging.CRITICAL.
+        log_file (str): The name of the log file.
+        save_file (bool): If True, saves logs to the specified file.
+        level (int): The minimum logging level to record.
+                     Examples: logging.DEBUG, logging.INFO, logging.WARNING,
+                               logging.ERROR, logging.CRITICAL.
     """
         
-    # Crea un'istanza del logger. È buona pratica usare un nome specifico.
-    # logging.getLogger() con lo stesso nome ritorna sempre la stessa istanza.
-    global_logger = logging.getLogger('my_tool_logger')
+    # Create a logger instance. It's good practice to use a specific name,
+    # as logging.getLogger() with the same name always returns the same instance.
+    logger = logging.getLogger('my_tool_logger')
+    logger.setLevel(level)
 
-    global_logger.setLevel(level) # Imposta il livello minimo di log per l'intero logger
+    # To prevent adding handlers multiple times if the function is called again
+    if logger.hasHandlers():
+        logger.handlers.clear()
 
-    # Crea un formattatore per i messaggi di log
+    # Create a formatter for log messages
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     
     if save_file:
-        # Se il file di log esiste già, lo cancella
-        # per evitare di appendere i nuovi log a quelli vecchi.
-        if os.path.exists(log_file):
-            os.remove(log_file)
-        else:
-            # Crea il file se non esiste
-            os.makedirs(os.path.dirname(log_file), exist_ok=True)
-                    
-        # 1. Handler per il file di log
-        # 'a' significa append, quindi i nuovi log verranno aggiunti alla fine del file esistente.
-        # encoding='utf-8' assicura la corretta gestione dei caratteri speciali.
-        file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
-        file_handler.setFormatter(formatter)
-        global_logger.addHandler(file_handler)
+        log_dir = os.path.dirname(log_file)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
 
-    # 2. Handler per la console (output standard)
+        # 1. Handler for the log file
+        # 'w' mode overwrites the file if it exists, ensuring a fresh log for each run.
+        file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+    # 2. Handler for the console (standard output)
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
-    global_logger.addHandler(console_handler)
+    logger.addHandler(console_handler)
 
-    # Messaggio di debug per confermare l'inizializzazione
-    # Questo messaggio verrà mostrato solo se il 'level' è impostato a DEBUG o inferiore.
-    global_logger.debug(f"Sistema di logging inizializzato. File di log: {os.path.abspath(log_file)}")
-    return global_logger
-
-def log(message, level='info'):
-    """
-    Scrive un messaggio di log sia sulla console che nel file di log.
-
-    Args:
-        message (str): Il messaggio da loggare.
-        level (str): Il livello di log del messaggio ('debug', 'info', 'warning',
-                     'error', 'critical'). Default è 'info'.
-    """
-    global_logger = logging.getLogger('my_tool_logger')
-
-    if global_logger is None:
-        raise RuntimeError("Sistema di logging non inizializzato. Chiama init_logging() nel tuo script principale per primo.")
-
-    # Mappa i nomi dei livelli stringa agli oggetti livello del modulo logging
-    log_level_map = {
-        'debug': logging.DEBUG,
-        'info': logging.INFO,
-        'warning': logging.WARNING,
-        'error': logging.ERROR,
-        'critical': logging.CRITICAL,
-    }
-    numeric_level = log_level_map.get(level.lower(), logging.INFO) # Default a INFO se il livello non è riconosciuto
-
-    global_logger.log(numeric_level, message.strip())
+    # This debug message will only be shown if the 'level' is set to DEBUG.
+    logger.debug(f"Logging system initialized. Log file: {os.path.abspath(log_file)}")
+    return logger
