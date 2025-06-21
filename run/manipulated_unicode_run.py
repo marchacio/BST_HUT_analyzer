@@ -1,18 +1,18 @@
 from pathlib import Path
 
 from config.config import AnalysisConfig
-from src.core.blank_space_analyzer import BlankSpaceAnalyzer
+from src.core.unicode_analyzer import UnicodeAnalyzer
 from src.utils.clone_repo import clone_repo
-from utils.git_manipulators.bst_manipulator import inject_bst_vulnerability
+from utils.git_manipulators.hut_manipulator import inject_hut_vulnerability
 from run.const.repo_list import repo_list
 
-def manipulate_and_analyze_blank_space(repo_url, extension, threshold_mean, threshold_previous):
+def manipulate_and_analyze_blank_space(repo_url, extension):
     """
-    Clones a repository, manipulates it to create a blank space trojan, and analyzes the blank space ratio.
+    Clones a repository, manipulates it to create a hidden unicode trojan and anlalyze file.
     """
     
     repo_name = repo_url.rstrip('/').split('/')[-1].replace(".git", "")
-    output_dir = Path("analytics") / repo_name / "manipulated_blank_space"
+    output_dir = Path("analytics") / repo_name / "manipulated_unicode"
 
     # 1. Configuration
     config = AnalysisConfig(
@@ -21,7 +21,7 @@ def manipulate_and_analyze_blank_space(repo_url, extension, threshold_mean, thre
         
         log_file=output_dir / "blank_space_analysis.log",
     )
-    analyzer = BlankSpaceAnalyzer(config)
+    analyzer = UnicodeAnalyzer(config)
 
     # 2. Clone repo (if not already cloned)
     repo = clone_repo(repo_url, logger=analyzer.logger)
@@ -29,11 +29,10 @@ def manipulate_and_analyze_blank_space(repo_url, extension, threshold_mean, thre
         exit(1)
     
     # 3. Manipulation of the repository
-    manipulated_file = inject_bst_vulnerability(
+    manipulated_file = inject_hut_vulnerability(
         repo_path=repo.working_tree_dir,
         file_extension=extension,
         filters=config.filter_dirs,
-        n_blank_chars=800  # Example value, adjust as needed
     )
 
     # 4. Analysis

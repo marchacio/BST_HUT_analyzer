@@ -8,8 +8,6 @@ import homoglyphs as hg
 import pandas as pd
 
 from src.core.analyzer import BaseAnalyzer, FileAnalysisResult, TagAnalysisResult
-from config.config import AnalysisConfig
-from src.utils.clone_repo import clone_repo
 
 # Cache for character categories to improve performance
 _char_category_cache: Dict[str, tuple[str, str]] = {}

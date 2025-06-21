@@ -2,7 +2,7 @@ import git
 import os
 import random
 
-def perform_local_git_manipulation(repo_path, file_extension=".py", filters=[], n_blank_chars=500) -> str:
+def inject_bst_vulnerability(repo_path, file_extension=".py", filters=[], n_blank_chars=500) -> str:
     """
     Performs local manipulations on a Git repository:
     0. Checks if the latest tag is "TEST" and, if so, returns the file that was already modified with the backdoor.
