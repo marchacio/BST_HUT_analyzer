@@ -1,6 +1,6 @@
 import ast
 
-from .log import log
+from ..src.utils.log import log
 
 # Extended definition of potentially insecure function patterns to search for.
 # We map the pattern (Module.function or just function) to its severity and description.

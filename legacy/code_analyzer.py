@@ -1,12 +1,12 @@
 from git import Commit
-from src.utils.shannon_entropy import calculate_shannon_entropy
-from src.utils.sast_analyzer import analyze_python_file_for_sast
-from src.utils.secret_analyzer import find_secrets_in_file
-from src.utils.cyclomatic_complexity_analyzer import analyze_file_complexity
-from src.utils.text_metrics_analyzer import analyze_file_text_metrics
+from legacy.shannon_entropy import calculate_shannon_entropy
+from legacy.sast_analyzer import analyze_python_file_for_sast
+from legacy.secret_analyzer import find_secrets_in_file
+from legacy.cyclomatic_complexity_analyzer import analyze_file_complexity
+from legacy.text_metrics_analyzer import analyze_file_text_metrics
 import ast
 
-from .log import log
+from ..src.utils.log import log
 
 def _read_code_data(code: str) -> dict:
     

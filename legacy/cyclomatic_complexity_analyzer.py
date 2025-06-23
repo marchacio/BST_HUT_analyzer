@@ -1,7 +1,7 @@
 import os
 import ast
 
-from .log import log
+from ..src.utils.log import log
 
 # We count decision points: if, for, while, except, and, or, assert, case, comprehensions.
 class ComplexityVisitor(ast.NodeVisitor):
