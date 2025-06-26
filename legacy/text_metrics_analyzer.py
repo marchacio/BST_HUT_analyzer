@@ -1,4 +1,4 @@
-from .log import log
+from ..src.utils.log import log
 
 def analyze_file_text_metrics(file_path: str, code: str) -> dict:
     """

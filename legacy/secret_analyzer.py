@@ -1,6 +1,6 @@
 import re
 
-from .log import log
+from ..src.utils.log import log
 
 # Definition of regex patterns to search for potential hardcoded secrets.
 # These are common examples and are not exhaustive.

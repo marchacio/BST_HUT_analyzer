@@ -3,7 +3,7 @@ from pathlib import Path
 from config.config import AnalysisConfig
 from src.core.unicode_analyzer import UnicodeAnalyzer
 from src.utils.clone_repo import clone_repo
-from utils.git_manipulators.hut_manipulator import inject_hut_vulnerability
+from src.utils.git_manipulators.hut_manipulator import inject_hut_vulnerability
 from run.const.repo_list import repo_list
 
 def manipulate_and_analyze_blank_space(repo_url, extension):
@@ -57,8 +57,6 @@ if __name__ == "__main__":
         manipulate_and_analyze_blank_space(
             repo_url=repo_url,
             extension="js",
-            threshold_mean=3.5,
-            threshold_previous=3.5
         )
         
         print(f"Analysis completed for repository: {repo_url}\n")
