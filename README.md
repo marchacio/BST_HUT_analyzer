@@ -2,7 +2,7 @@
 
 This repository contains scripts to test the HUT (Hidden Unicode Trick) and BST (Blank Space Trick) vulnerabilities.
 
-Check my [study](TODO) for more information about these vulnerabilities.
+Check my [study](https://github.com/marchacio/marchacio.github.io/tree/main/Bachelor%20Thesis) for more information about these vulnerabilities.
 
 
 ## Run Tests
