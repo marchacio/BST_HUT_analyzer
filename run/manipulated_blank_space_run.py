@@ -3,10 +3,10 @@ from pathlib import Path
 from config.config import AnalysisConfig
 from src.core.blank_space_analyzer import BlankSpaceAnalyzer
 from src.utils.clone_repo import clone_repo
-from utils.git_manipulators.bst_manipulator import inject_bst_vulnerability
+from src.utils.git_manipulators.bst_manipulator import inject_bst_vulnerability
 from run.const.repo_list import repo_list
 
-def manipulate_and_analyze_blank_space(repo_url, extension, threshold_mean, threshold_previous):
+def manipulate_and_analyze_blank_space(repo_url, extension):
     """
     Clones a repository, manipulates it to create a blank space trojan, and analyzes the blank space ratio.
     """
@@ -33,7 +33,8 @@ def manipulate_and_analyze_blank_space(repo_url, extension, threshold_mean, thre
         repo_path=repo.working_tree_dir,
         file_extension=extension,
         filters=config.filter_dirs,
-        n_blank_chars=800  # Example value, adjust as needed
+        n_blank_chars=800, # Example value, adjust as needed
+        obfuscated=False, # Use obfuscated payload
     )
 
     # 4. Analysis
@@ -58,8 +59,6 @@ if __name__ == "__main__":
         manipulate_and_analyze_blank_space(
             repo_url=repo_url,
             extension="js",
-            threshold_mean=3.5,
-            threshold_previous=3.5
         )
         
         print(f"Analysis completed for repository: {repo_url}\n")
