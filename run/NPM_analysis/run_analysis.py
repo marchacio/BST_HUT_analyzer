@@ -29,7 +29,6 @@ PAUSE_BETWEEN_VERSIONS = 0.1             # Pause during version downloads
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("NPM_Analyzer")
 
-#region: ANALYZER CORE (Il tuo codice, adattato)
 # --- Data Classes (data structures) ---
 @dataclass
 class FileAnalysisResult:
@@ -165,9 +164,7 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
         max_line_length_df.to_csv(max_line_output_path, na_rep='')
 
         self.logger.info(f"Reports saved in: {package_output_dir.resolve()}")
-#endregion
 
-#region: ORCHESTRATOR LOGIC
 def get_top_packages(limit=100) -> List[str]:
     """Retrieve the names of the most popular packages from the NPM API."""
     packages, page_size = [], 250
@@ -236,7 +233,6 @@ def load_processed_packages() -> set:
 
 def mark_package_as_processed(package_name: str):
     with open(LOG_FILE, 'a') as f: f.write(f"{package_name}\n")
-#endregion
 
 def main():
     """Main function that orchestrates download, analysis and cleanup."""
