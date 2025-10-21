@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 # --- CONFIGURATION ---
 #PACKAGES_TO_FETCH = 50000
-PACKAGES_TO_FETCH = 10                   # Number of packages to analyze
+PACKAGES_TO_FETCH = 10000                   # Number of packages to analyze
 DOWNLOAD_DIR = Path("temp")              # Temporary folder for the current package
 OUTPUT_DIR = Path("npm_results")         # Final folder for CSV results
 LOG_FILE = "processed.log"               # File to resume the process
