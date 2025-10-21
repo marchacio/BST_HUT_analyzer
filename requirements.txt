@@ -2,3 +2,4 @@ homoglyphs
 requests
 gitpython
 pandas
+ijson

@@ -9,21 +9,21 @@ import shutil
 import pandas as pd
 import multiprocessing as mp
 import logging
+import ijson
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Generator
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 # --- CONFIGURATION ---
-#PACKAGES_TO_FETCH = 50000
-PACKAGES_TO_FETCH = 10000                   # Number of packages to analyze
-DOWNLOAD_DIR = Path("temp")              # Temporary folder for the current package
-OUTPUT_DIR = Path("npm_results")         # Final folder for CSV results
-LOG_FILE = "processed.log"               # File to resume the process
-ANALYSIS_EXTENSION = "js"                # File extension to analyze
-MAX_PROCESSES = os.cpu_count() or 1      # Processes for analysis (use 1 for debugging)
-PAUSE_BETWEEN_PACKAGES = 2               # Pause in seconds between packages
-PAUSE_BETWEEN_VERSIONS = 0.1             # Pause during version downloads
+PACKAGE_FILE = Path("names_21_10_25.json")  # Input JSON file taken from https://github.com/nice-registry/all-the-package-names/
+DOWNLOAD_DIR = Path("temp")                 # Temporary folder for the current package
+OUTPUT_DIR = Path("npm_results")            # Final folder for CSV results
+LOG_FILE = "processed.log"                  # File to resume the process
+ANALYSIS_EXTENSION = "js"                   # File extension to analyze
+MAX_PROCESSES = os.cpu_count() or 1         # Processes for analysis (use 1 for debugging)
+PAUSE_BETWEEN_PACKAGES = 2                  # Pause in seconds between packages
+PAUSE_BETWEEN_VERSIONS = 0.1                # Pause during version downloads
 
 # --- Setup del Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -165,27 +165,26 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
 
         self.logger.info(f"Reports saved in: {package_output_dir.resolve()}")
 
-def get_top_packages(limit=100, startFrom=0) -> List[str]:
-    """Retrieve the names of the most popular packages from the NPM API."""
-    packages, page_size = [], 250
-    logger.info(f"Fetching the top {limit} package names starting from {startFrom}...")
-    for i in range(startFrom, limit, page_size):
-        print(f"Fetching packages {i} to {min(i+page_size, limit)}...")
-        try:
-            params = {'text': 'boost-exact:false', 'popularity': 1.0, 'size': page_size, 'from': i}
-            response = requests.get("https://registry.npmjs.org/-/v1/search", params=params, timeout=20)
-            response.raise_for_status()
-            for obj in response.json().get('objects', []):
-                packages.append(obj['package']['name'])
-                if len(packages) >= limit: break
-            logger.info(f"  Retrieved {startFrom+len(packages)}/{limit} package names...")
-            time.sleep(0.5)
-            if len(packages) >= limit: break
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching package list: {e}")
-            break
-    logger.info(f"Fetch completed. Found {len(packages)} packages.")
-    return packages
+def stream_packages_from_file(json_file_path: Path) -> Generator[str, None, None]:
+    """
+    Yields package names one by one from a large JSON list file.
+    This is memory-efficient and does not load the whole file.
+    Requires the 'ijson' library.
+    """
+    logger.info(f"Streaming package names from {json_file_path}...")
+    try:
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            # 'item' iterates over elements in the root-level array
+            package_generator = ijson.items(f, 'item')
+            for package_name in package_generator:
+                if isinstance(package_name, str) and package_name.strip():
+                    yield package_name
+    except FileNotFoundError:
+        logger.critical(f"FATAL: Package file not found: {json_file_path}")
+        return
+    except Exception as e:
+        logger.critical(f"FATAL: Error reading package file {json_file_path}: {e}")
+        return
 
 def download_all_versions(package_name: str, package_dir: Path) -> bool:
     """Download and extract all versions of a package."""
@@ -235,35 +234,39 @@ def load_processed_packages() -> set:
 def mark_package_as_processed(package_name: str):
     with open(LOG_FILE, 'a') as f: f.write(f"{package_name}\n")
 
+# --- MAIN FUNCTION ---
 def main():
     """Main function that orchestrates download, analysis and cleanup."""
     processed_packages = load_processed_packages()
     logger.info(f"Found {len(processed_packages)} packages already processed in the log.")
-    
-    all_packages = get_top_packages(
-        limit=PACKAGES_TO_FETCH, 
-        startFrom=len(processed_packages)
-    )
-    logger.info(f"Total packages fetched: {len(all_packages)}")
-    logger.info(f"Packages already processed: {len(processed_packages)}")
-    packages_to_run = [p for p in all_packages if p not in processed_packages]
-    logger.info(f"Total packages to process: {len(packages_to_run)}")
 
-    if not packages_to_run:
-        logger.info("All requested packages have already been processed. Exiting.")
-        return
+    # Create a generator from the file.
+    package_stream = stream_packages_from_file(PACKAGE_FILE)
+    packages_processed_this_run = 0
 
     DOWNLOAD_DIR.mkdir(exist_ok=True)
     
-    print(f"\n--- Starting analysis of {len(packages_to_run)} packages ---\n")
+    print(f"\n--- Starting analysis ---")
+    print(f"Reading from: {PACKAGE_FILE.resolve()}")
     print(f"Temporary folder: {DOWNLOAD_DIR.resolve()}")
     print(f"Results folder: {OUTPUT_DIR.resolve()}")
     print(f"Processes used: {MAX_PROCESSES}\n")
     
     analyzer = BlankSpaceAnalyzer(max_processes=MAX_PROCESSES)
 
-    for i, package_name in enumerate(packages_to_run):
-        logger.info(f"\n{'='*50}\n[{i+1}/{len(packages_to_run)}] START PACKAGE: {package_name}\n{'='*50}")
+    # We iterate over the stream generator, not a pre-built list
+    for package_name in package_stream:
+        
+        # Check 2: Was this package already processed in a previous run?
+        if package_name in processed_packages:
+            continue
+
+        # If we are here, it's a new package we need to process
+        packages_processed_this_run += 1
+        
+        logger.info(f"\n{'='*50}\n"
+                    f"[Package {packages_processed_this_run}] START PACKAGE: {package_name}"
+                    f"\n{'='*50}")
         
         # Define a unique path for the current package
         sanitized_name = package_name.replace('/', '_')
