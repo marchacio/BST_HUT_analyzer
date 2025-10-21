@@ -170,6 +170,7 @@ def get_top_packages(limit=100, startFrom=0) -> List[str]:
     packages, page_size = [], 250
     logger.info(f"Fetching the top {limit} package names starting from {startFrom}...")
     for i in range(startFrom, limit, page_size):
+        print(f"Fetching packages {i} to {min(i+page_size, limit)}...")
         try:
             params = {'text': 'boost-exact:false', 'popularity': 1.0, 'size': page_size, 'from': i}
             response = requests.get("https://registry.npmjs.org/-/v1/search", params=params, timeout=20)
@@ -243,8 +244,11 @@ def main():
         limit=PACKAGES_TO_FETCH, 
         startFrom=len(processed_packages)
     )
+    logger.info(f"Total packages fetched: {len(all_packages)}")
+    logger.info(f"Packages already processed: {len(processed_packages)}")
     packages_to_run = [p for p in all_packages if p not in processed_packages]
-    
+    logger.info(f"Total packages to process: {len(packages_to_run)}")
+
     if not packages_to_run:
         logger.info("All requested packages have already been processed. Exiting.")
         return
