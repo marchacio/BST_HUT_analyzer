@@ -168,7 +168,7 @@ class BlankSpaceAnalyzer(BaseAnalyzer):
 def get_top_packages(limit=100, startFrom=0) -> List[str]:
     """Retrieve the names of the most popular packages from the NPM API."""
     packages, page_size = [], 250
-    logger.info(f"Fetching the top {limit} package names...")
+    logger.info(f"Fetching the top {limit} package names starting from {startFrom}...")
     for i in range(startFrom, limit, page_size):
         try:
             params = {'text': 'boost-exact:false', 'popularity': 1.0, 'size': page_size, 'from': i}
@@ -177,7 +177,7 @@ def get_top_packages(limit=100, startFrom=0) -> List[str]:
             for obj in response.json().get('objects', []):
                 packages.append(obj['package']['name'])
                 if len(packages) >= limit: break
-            logger.info(f"  Retrieved {len(packages)}/{limit} package names...")
+            logger.info(f"  Retrieved {startFrom+len(packages)}/{limit} package names...")
             time.sleep(0.5)
             if len(packages) >= limit: break
         except requests.exceptions.RequestException as e:
@@ -240,7 +240,7 @@ def main():
     logger.info(f"Found {len(processed_packages)} packages already processed in the log.")
     
     all_packages = get_top_packages(
-        PACKAGES_TO_FETCH, 
+        limit=PACKAGES_TO_FETCH, 
         startFrom=len(processed_packages)
     )
     packages_to_run = [p for p in all_packages if p not in processed_packages]
