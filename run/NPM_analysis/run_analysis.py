@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 # --- CONFIGURATION ---
-PACKAGE_FILE = Path("names_21_10_25.json")  # Input JSON file taken from https://github.com/nice-registry/all-the-package-names/
+PACKAGE_FILE = Path("most_popular_packs_22_10_25.json")           # Input JSON file taken from https://github.com/tristan-f-r/npm-rank?tab=readme-ov-file
 DOWNLOAD_DIR = Path("temp")                 # Temporary folder for the current package
 OUTPUT_DIR = Path("npm_results")            # Final folder for CSV results
 LOG_FILE = "processed.log"                  # File to resume the process
@@ -176,9 +176,16 @@ def stream_packages_from_file(json_file_path: Path) -> Generator[str, None, None
         with open(json_file_path, 'r', encoding='utf-8') as f:
             # 'item' iterates over elements in the root-level array
             package_generator = ijson.items(f, 'item')
-            for package_name in package_generator:
-                if isinstance(package_name, str) and package_name.strip():
-                    yield package_name
+            for item in package_generator:
+                pkg_name = None
+                if isinstance(item, dict):
+                    pkg_name = item.get("name")
+                elif isinstance(item, str):
+                    pkg_name = item
+                if isinstance(pkg_name, str) and pkg_name.strip():
+                    yield pkg_name
+                else:
+                    logger.debug(f"Skipping invalid package entry: {item}")
     except FileNotFoundError:
         logger.critical(f"FATAL: Package file not found: {json_file_path}")
         return
