@@ -16,3 +16,6 @@ COPY . .
 
 # 6. Comando di avvio
 CMD ["python", "run/NPM_analysis/run_HUT_analysis.py"]
+
+# Crea l'immagine con:
+# docker build -t hut_npm_analysis:latest .
