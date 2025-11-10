@@ -15,4 +15,4 @@ COPY . .
 # EXPOSE 8000
 
 # 6. Comando di avvio
-CMD ["python", "run/NPM_analysis/run_analysis.py"]
+CMD ["python", "run/NPM_analysis/run_HUT_analysis.py"]
